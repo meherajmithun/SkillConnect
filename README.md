@@ -2,120 +2,123 @@
 
 **Find skills. Connect locally. Grow your business.**
 
-A local service marketplace built from [the project proposal](SkillConnect_2_Page_Proposal_Python.pdf). Customers discover and compare professionals, request quotations, book services and review completed work. Professionals manage a digital business profile, receive requests and purchase service/area-specific promotions.
-
-The version 1.1.0 update adds email recovery/verification, appointment scheduling, accepted-quotation bookings, private messaging and configurable SSLCommerz checkout. Version 1.1.2 keeps the Discover layout visible without a backend connection. See [app updates and integration setup](docs/APP_UPDATES.md).
-
-Version 1.2.0 adds an interactive offline demo for faculty review. Install
-`dist/SkillConnect-demo-v1.2.1.apk` to explore customer and professional journeys
-with sample data saved on the phone. See the [faculty walkthrough](docs/FACULTY_DEMO.md).
+A service marketplace with a **Flutter/Dart frontend and JavaScript backend**.
+Customers discover professionals, compare work, request quotations, book services,
+message and review completed work. Professionals manage profiles, appointments
+and service/area promotions. Staff use the Node.js administration console.
 
 ## Stack
 
-- Flutter/Dart app for Android, iOS and web.
-- Python 3.12+, Django 5.2 LTS, Django REST Framework and JWT authentication.
-- PostgreSQL for deployment; SQLite for quick local development.
-- OpenStreetMap discovery maps; optional native Firebase Cloud Messaging.
-- Django admin for users, categories, verification, review moderation, promotion pricing and reports.
+- Flutter/Dart for Android, iOS and web.
+- Node.js 22.13+ and Express 5, with JavaScript ES modules.
+- PostgreSQL for deployment; built-in Node SQLite for local development.
+- JWT access/refresh sessions, scrypt password hashing, role/participant permissions.
+- Optional SMTP, Firebase Cloud Messaging and SSLCommerz hosted checkout.
 
-See [project structure](docs/PROJECT_STRUCTURE.md) for the directory layout and module responsibilities. Run `make help` for common development commands after installing the dependencies below.
+## Run locally
 
-## Sprint 1 — Planning & UI/UX
-
-The [Sprint 1 package](docs/sprint-1/README.md) covers all six Week 1–2 WBS items:
-requirements, project planning, stakeholders, user flows/wireframes, UI design and
-development setup. It includes code traceability and an interactive phone
-prototype with customer/professional journeys and a wireframe mode.
-
-Run `make prototype` and open **http://localhost:8082** beside your editor. The
-prototype uses sample data and runs independently of the actual Flutter app.
-See the [setup guide](docs/sprint-1/SETUP.md) for first-time installation and checks.
-
-## Run the backend
+Install Node.js 22.13+ and a stable Flutter SDK compatible with the mobile manifest.
 
 ```sh
-python3.12 -m venv .venv
-source .venv/bin/activate
-pip install -r backend/requirements-dev.txt
-python backend/manage.py migrate
-export DEMO_PASSWORD='choose-your-own-demo-password'
-python backend/manage.py seed_demo
-python backend/manage.py createsuperuser
-python backend/manage.py runserver 0.0.0.0:8000
+npm ci
+npm run migrate
+# For a fresh database; existing accounts are preserved:
+DEMO_PASSWORD='choose-a-strong-example-password' npm run seed
+npm run dev
 ```
 
-API: `http://localhost:8000/api/` · Admin: `http://localhost:8000/admin/`
+The API runs on **http://localhost:8000/api/** and listens on all local network
+interfaces by default. Node commands load an optional root `.env` automatically.
+Copy `.env.example` and edit it for your environment.
 
-Seeded accounts: `customer` (customer), `rahim` (electrician), `sadia`, `karim`, `farzana`, `imran`, and `tanim` (professionals). All use the password you supply in `DEMO_PASSWORD`. Seeding is repeatable and does not overwrite existing accounts or packages. Demo phone numbers and portfolio entries are illustrative, not real service providers.
+Create a staff account:
 
-## Run Flutter
+```sh
+ADMIN_USERNAME=admin ADMIN_EMAIL=admin@example.com \
+ADMIN_PASSWORD='choose-a-strong-admin-password' npm run admin
+```
 
-Install a recent stable Flutter SDK with Dart **3.13.2 or later**, then:
+Sign in at **http://localhost:8000/admin/**. The staff console manages account
+activation, professional verification, categories, areas, review visibility,
+promotion packages/payments and reports, and shows bookings and metrics.
+
+Run Flutter in another terminal:
 
 ```sh
 cd mobile
 flutter pub get
+flutter run -d chrome --web-port=8080 --dart-define=ALLOW_HTTP=true
 # Android emulator:
 flutter run --dart-define=ALLOW_HTTP=true --dart-define=API_URL=http://10.0.2.2:8000/api/
-# Browser (fixed port matches the default CORS configuration):
-flutter run -d chrome --web-port=8080 --dart-define=ALLOW_HTTP=true
 ```
 
-Use the link icon in the app toolbar to change the server address. The app tests the connection before saving it and signs out when switching servers. JWT tokens are stored using platform secure storage and refreshed automatically. On web, use HTTPS or localhost for the browser's secure storage requirements.
+For a phone on the same Wi-Fi, use the computer's Wi-Fi address in the app's
+server settings. Keep the Node server running. See [Android sharing](docs/ANDROID_SHARING.md).
 
-## Share the APK
+## Offline faculty demo
 
-See [Android sharing instructions](docs/ANDROID_SHARING.md). The friends build supports HTTP for local Wi-Fi testing and is signed with the development key. It requires the Python backend; the APK does not contain a database server or a public hosting service.
+Install `dist/SkillConnect-demo-v1.2.1.apk` to explore the Flutter app without
+hosting. Sample changes stay on the phone. Account → Switch demo account provides
+Customer and Professional accounts. See [faculty walkthrough](docs/FACULTY_DEMO.md).
+The frontend API is compatible with the new JavaScript backend.
+
+## Database import
+
+The migration imported this workspace's existing local accounts, profiles,
+bookings, reviews and catalogue into `backend/data/skillconnect.sqlite3`.
+A read-only backup is kept at `backend/data/legacy.sqlite3`. Existing passwords
+continue to work; sign in again because old sessions were retired.
+
+For another existing installation, import its old SQLite backup into an empty
+new database before seeding:
 
 ```sh
-cd mobile
-flutter build apk --release \
-  --dart-define=ALLOW_HTTP=true \
-  --dart-define=API_URL=http://YOUR_COMPUTER_IP:8000/api/
+npm run import-legacy -w backend -- /absolute/path/to/backup.sqlite3
 ```
 
-Output: `mobile/build/app/outputs/flutter-apk/app-release.apk`. GitHub Actions also builds and uploads an APK artifact on each push.
+The import uses Node.js only and refuses to overwrite an existing target database.
+Back up the database and media before running it. See [migration notes](docs/JAVASCRIPT_MIGRATION.md).
 
-## PostgreSQL with Docker
+## PostgreSQL / Docker
 
 ```sh
 cp .env.example .env
-# Edit .env with a random SECRET_KEY, strong POSTGRES_PASSWORD and allowed hosts.
+# Set a random JWT_SECRET, strong POSTGRES_PASSWORD and production settings.
 docker compose up --build -d
-docker compose exec api python manage.py createsuperuser
-docker compose exec -e DEMO_PASSWORD='choose-your-own-demo-password' api python manage.py seed_demo
 ```
 
-Compose defaults to a local development deployment. For production, set `DEBUG=false`, use PostgreSQL, set exact host/origin allowlists and put an HTTPS reverse proxy in front of Gunicorn. Forward `X-Forwarded-Proto` only from a trusted proxy. WhiteNoise serves collected admin static files. Serve `/media/` from the mounted media volume through the proxy or use object storage; Django only serves uploads in debug mode. Back up both PostgreSQL and uploaded media.
+The API creates its schema on startup. Admin/seed commands can run inside the
+container with the corresponding environment variables:
+`docker compose exec api node src/commands.js admin` and
+`docker compose exec api node src/commands.js seed`.
 
-For a native production build, use an HTTPS `API_URL`, omit `ALLOW_HTTP=true`, and configure your own Android signing key instead of the template development key. Do not expose the Django development server publicly.
+Production requires PostgreSQL, a strong JWT secret, exact host/origin settings
+and HTTPS from a trusted reverse proxy. Store media on a persistent volume or
+object storage; the Node server serves its configured media directory.
+Back up both PostgreSQL and media. Use your own Android signing key for distribution.
 
-## Promotions and payments
+## Integrations
 
-The four proposal packages are seeded at BDT 100 / 1 day, 300 / 7 days, 500 / 15 days and 800 / 30 days. Administrators can edit prices, durations and availability. A purchase snapshots the price and duration so later package edits cannot change an existing order.
-
-Purchases remain **pending payment**. Collect and verify payment outside the app, then use **Confirm received payment and activate promotions** in Django admin. Optional SSLCommerz hosted checkout provides server-validated promotion payments when merchant credentials are configured. The app does not collect card details. See [payment setup](docs/APP_UPDATES.md#promotion-payments). Confirming twice cannot extend a promotion. A development-only `DEMO_PAYMENTS=true` setting activates simulated purchases immediately; the app explicitly labels this mode, and production disables it.
-
-Sponsored results only apply when both the searched category and area match an active, paid promotion. Expiry is evaluated at search time. Recommended ranking uses rating + profile quality + a bounded promotion boost − distance penalty. Highest-rated and nearest sorting remain available. Sponsored cards are labeled. Distance is measured from the chosen area's center to a professional's business coordinates, not route distance or live GPS.
-
-## Firebase notifications
-
-Booking, quotation and promotion updates are always available in the app's Notifications page. Native push is optional:
-
-See [native push setup](docs/APP_UPDATES.md#native-push-notifications) for Firebase build configuration, APNs requirements and the local/Docker worker. Enable notifications in Account after building with your configuration. The worker tracks each device separately, retries failed sends and removes invalid tokens. In-app notifications work without Firebase credentials.
+Email codes print only in local console mode; set `EMAIL_MODE=smtp` and SMTP
+credentials for delivery. Configure Firebase credentials and run
+`npm run push-worker` for native push. Run one worker; retries are tracked per
+device and delivery is at least once. Configure merchant credentials and HTTPS
+callbacks to enable SSLCommerz. Manual promotion payment confirmation remains
+available. Live provider/device checks still require your own credentials.
 
 ## Validate
 
 ```sh
-pytest -q
-python backend/manage.py check
-python backend/manage.py makemigrations --check --dry-run
-cd mobile
-dart format --output=none --set-exit-if-changed lib test
-flutter analyze
-flutter test
+npm run check
+npm test
+make check-mobile test-mobile
 ```
 
-Tests cover permissions, JWT rotation/logout, service requests, booking transitions, completed-booking reviews, moderation, promotion scope/expiry/price snapshots, ownership, ranking and mobile layouts. CI runs backend tests against PostgreSQL and produces the Android APK. iOS signing and credential-dependent push/payment integrations require separate deployment configuration.
+Backend tests exercise real HTTP endpoints with SQLite. CI repeats them against
+PostgreSQL. They cover auth/session revocation, permissions, request lifecycles,
+concurrent booking/refresh protection, uploads, moderation, payments, push and
+legacy data import. Provider transports are mocked in tests.
 
-See [API reference](docs/API.md) and [proposal coverage](docs/PROPOSAL_COVERAGE.md).
+See [API](docs/API.md), [project structure](docs/PROJECT_STRUCTURE.md),
+[proposal coverage](docs/PROPOSAL_COVERAGE.md) and [Sprint 1 planning](docs/sprint-1/README.md).
+Run `make help` for development commands.

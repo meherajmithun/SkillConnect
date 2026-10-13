@@ -1,45 +1,44 @@
-PYTHON ?= python
+NPM ?= npm
+NODE ?= node
 FLUTTER ?= flutter
 DART ?= dart
-PROTOTYPE_PYTHON ?= python3
 PROTOTYPE_PORT ?= 8082
 
 .PHONY: help install install-backend install-mobile doctor seed prototype migrate backend mobile check check-backend check-mobile test test-backend test-mobile
 
 help:
-	@echo "install        Install backend and Flutter development dependencies"
+	@echo "install        Install Node.js and Flutter dependencies"
 	@echo "doctor         Check local development prerequisites"
-	@echo "seed           Create demo data (requires DEMO_PASSWORD)"
-	@echo "prototype      Sprint 1 phone prototype on port $(PROTOTYPE_PORT)"
-	@echo "migrate        Apply database migrations"
-	@echo "backend        Run Django on port 8000"
+	@echo "seed           Seed examples (requires DEMO_PASSWORD)"
+	@echo "prototype      Planning prototype on port $(PROTOTYPE_PORT)"
+	@echo "migrate        Initialize the JavaScript database schema"
+	@echo "backend        Run Node.js API on port 8000"
 	@echo "mobile         Run Flutter web on port 8080"
-	@echo "check          Check Django, migrations and Flutter"
+	@echo "check          Check JavaScript and Flutter"
 	@echo "test           Run backend and Flutter tests"
-	@echo "Use check-backend, check-mobile, test-backend or test-mobile separately."
 
 install: install-backend install-mobile
 
 install-backend:
-	$(PYTHON) -m pip install -r backend/requirements-dev.txt
+	$(NPM) ci
 
 install-mobile:
 	cd mobile && $(FLUTTER) pub get
 
 doctor:
-	$(PYTHON) scripts/dev_doctor.py --flutter "$(FLUTTER)" --dart "$(DART)"
+	$(NODE) scripts/dev-doctor.js
 
 seed:
-	$(PYTHON) backend/manage.py seed_demo
+	$(NPM) run seed
 
 prototype:
-	$(PROTOTYPE_PYTHON) -m http.server $(PROTOTYPE_PORT) --bind 127.0.0.1 --directory docs/sprint-1/prototype
+	PROTOTYPE_PORT=$(PROTOTYPE_PORT) $(NODE) scripts/prototype-server.js
 
 migrate:
-	$(PYTHON) backend/manage.py migrate
+	$(NPM) run migrate
 
 backend:
-	$(PYTHON) backend/manage.py runserver 0.0.0.0:8000
+	$(NPM) run dev
 
 mobile:
 	cd mobile && $(FLUTTER) run -d chrome --web-port=8080 --dart-define=ALLOW_HTTP=true
@@ -47,8 +46,7 @@ mobile:
 check: check-backend check-mobile
 
 check-backend:
-	$(PYTHON) backend/manage.py check
-	$(PYTHON) backend/manage.py makemigrations --check --dry-run
+	$(NPM) run check
 
 check-mobile:
 	cd mobile && $(DART) format --output=none --set-exit-if-changed lib test
@@ -57,7 +55,7 @@ check-mobile:
 test: test-backend test-mobile
 
 test-backend:
-	$(PYTHON) -m pytest -q
+	$(NPM) test
 
 test-mobile:
 	cd mobile && $(FLUTTER) test

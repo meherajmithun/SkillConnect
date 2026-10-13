@@ -30,7 +30,7 @@ SkillConnect
 │   └── Signed-in → account / email verification / notification permission / logout
 └── Toolbar → server connection; notifications when signed-in
 
-Separate staff surface: Django /admin/
+Separate staff surface: Node.js /admin/
 └── Users / professionals / categories / areas / bookings / reviews /
     packages / promotions / reports
 ```
@@ -119,7 +119,7 @@ availability changes and quotation replies; images/calendar are in the handoff.
 
 ```mermaid
 flowchart TD
-  Staff[Staff signs in to Django admin] --> Inspect[Inspect professional evidence]
+  Staff[Staff signs in to the JavaScript administration console] --> Inspect[Inspect professional evidence]
   Inspect --> Verify[Verify or leave unverified]
   Staff --> Moderate[Review reports and moderate reviews]
   Pro[Professional chooses package, service and area] --> Pending[Pending payment]
@@ -132,7 +132,7 @@ flowchart TD
 ```
 
 Staff sign-in, confirmation and verification are permission boundaries. The
-prototype's Staff view is a labeled sample process screen, not the Django UI.
+prototype's Staff view is a labeled sample process screen, not the live administration UI.
 
 ## Low-fidelity mobile wireframes
 

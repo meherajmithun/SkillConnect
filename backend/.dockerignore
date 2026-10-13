@@ -1,8 +1,6 @@
-.env
-db.sqlite3
-__pycache__
-*.pyc
-media
-staticfiles
-.pytest_cache
+node_modules/
+data/
+media/
 credentials/
+.env
+.DS_Store

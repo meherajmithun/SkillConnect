@@ -12,12 +12,12 @@ Send `SkillConnect-friends-v1.1.2.apk` to your friends. On Android, open it and 
 ## Connect on the same Wi-Fi
 
 1. Keep the hosting computer and phones on the same Wi-Fi network.
-2. Start the Python backend with your computer's IP allowed:
+2. Start the Node.js backend with your computer's IP allowed:
 
    ```sh
-   source .venv/bin/activate
-   export ALLOWED_HOSTS=localhost,127.0.0.1,10.0.2.2,YOUR_COMPUTER_IP
-   python backend/manage.py runserver 0.0.0.0:8000
+   npm ci
+   npm run migrate
+   npm run dev
    ```
 
 3. Open the link icon in the APK toolbar. Enter `http://YOUR_COMPUTER_IP:8000/api/` and tap **Test connection & save**.
@@ -46,7 +46,7 @@ The output is `mobile/build/app/outputs/flutter-apk/app-release.apk`. GitHub Act
 
 For production, use your own signing key, HTTPS hosting and an HTTPS `API_URL`. Omit `ALLOW_HTTP=true`; the production manifest rejects cleartext traffic and the connection settings reject HTTP addresses.
 
-Version 1.2.1 uses build number 7 and can update earlier friends APKs signed with the same development key. Apply backend migrations when connecting to the live backend. See [app updates](APP_UPDATES.md).
+Version 1.2.1 uses build number 7 and can update earlier friends APKs signed with the same development key. Run `npm run migrate` when connecting to the live backend. See [app updates](APP_UPDATES.md).
 
 To rebuild the faculty demo, add `--dart-define=DEMO_MODE=true` to the rebuild
 command above. GitHub Actions also uploads `SkillConnect-offline-demo-apk`.

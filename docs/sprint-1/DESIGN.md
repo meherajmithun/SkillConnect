@@ -74,7 +74,7 @@ All data is in memory. Reload/reset restores fixtures. No account, database,
 notification, payment or external contact is created. Demo sign-in deliberately
 uses a “Continue” action without collecting credentials; actual registration/login
 is documented and already implemented in Flutter. The Staff view explains a
-decision flow; it does not replace Django admin.
+decision flow; it does not replace the JavaScript administration console.
 
 Comparison, map, booking, reviews, portfolio uploads, calendar, promotions,
 password recovery and messaging are documented/implemented elsewhere and are

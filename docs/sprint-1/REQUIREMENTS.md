@@ -34,32 +34,32 @@ Priority: **Must** = MVP requirement, **Should** = supporting capability,
 **Extension** = implemented beyond the core WBS. Sprint refers to the WBS delivery
 phase; implementation already present is not re-counted as Sprint 1 work.
 Paths below are relative to the repository root. `screens/` means
-`mobile/lib/screens/`; backend files mean `backend/marketplace/`.
+`mobile/lib/screens/`; backend files mean `backend/src/`.
 
 | ID | User need / priority | Testable acceptance criteria | WBS sprint | Existing evidence |
 | --- | --- | --- | --- | --- |
-| FR-01 | Browse without an account — Must | A guest can list active services/areas, search professionals and open public profiles; a protected action requires sign-in. | 2 | `views.py`, `screens/discover.dart`, `test_authentication_required_for_mutations` |
-| FR-02 | Register and sign in — Must | Customer/professional roles are selectable; invalid/weak input is rejected; registration cannot assign staff; login uses username; refresh/logout operate on tokens. | 2 | `serializers.py`, `urls.py`, `api.dart`, `screens/account.dart`, registration/JWT tests |
-| FR-03 | Search and filter — Must | Category, area, text, rating and availability constrain results; rating/distance sorts work; no results and connection failure have recovery actions. Distances are from selected area center. | 2 | `services.py`, `views.py`, `screens/discover.dart`, distance/rating tests |
-| FR-04 | Assess and compare professionals — Must | Show business name, bio, skills, experience, areas, starting price, portfolio and visible reviews; expose verification; compare 2–3 selected profiles. | 2 | `ProfessionalSerializer`, `ProfileScreen`, `CompareScreen` |
-| FR-05 | Request and answer a quote — Must | A customer selects a served service/area and describes work; only the requested professional can reply with a positive amount; outsiders cannot read it. | 2 | `Quote`, quote viewset, `screens/activity.dart`, quote ownership tests |
+| FR-01 | Browse without an account — Must | A guest can list active services/areas, search professionals and open public profiles; a protected action requires sign-in. | 2 | `marketplace.js`, `screens/discover.dart`, `test_authentication_required_for_mutations` |
+| FR-02 | Register and sign in — Must | Customer/professional roles are selectable; invalid/weak input is rejected; registration cannot assign staff; login uses username; refresh/logout operate on tokens. | 2 | `auth.js`, `app.js`, `api.dart`, `screens/account.dart`, registration/JWT tests |
+| FR-03 | Search and filter — Must | Category, area, text, rating and availability constrain results; rating/distance sorts work; no results and connection failure have recovery actions. Distances are from selected area center. | 2 | `marketplace.js`, `marketplace.js`, `screens/discover.dart`, distance/rating tests |
+| FR-04 | Assess and compare professionals — Must | Show business name, bio, skills, experience, areas, starting price, portfolio and visible reviews; expose verification; compare 2–3 selected profiles. | 2 | `profile()` in `marketplace.js`, `ProfileScreen`, `CompareScreen` |
+| FR-05 | Request and answer a quote — Must | A customer selects a served service/area and describes work; only the requested professional can reply with a positive amount; outsiders cannot read it. | 2 | `Quote`, quotation routes, `screens/activity.dart`, quote ownership tests |
 | FR-06 | Maintain a business profile — Must | A professional edits only their own business/portfolio; images are validated; categories/areas are selectable; verification is not editable by the owner. | 2 | `Professional`, `Portfolio`, `screens/professional.dart`, ownership tests |
-| FR-07 | Manage availability — Must | A professional can pause new requests; bookings to an unavailable professional fail; previously accepted work remains visible. | 2 | `Professional.available`, request serializers, `BusinessScreen` |
-| FR-08 | Book and track service — Must | A customer chooses a future appointment and address; professional accepts/rejects pending work, completes accepted work; customer can cancel pending/accepted work; terminal states cannot be reopened. | 3 | `Booking`, `services.py`, `scheduling.py`, booking lifecycle/privacy tests |
-| FR-09 | Review completed service — Must | Only the owning customer can submit a rating 1–5 once per completed booking; incomplete/foreign bookings are rejected; hidden reviews do not contribute to public ratings. | 3 | `Review`, review serializer, lifecycle/moderation tests |
-| FR-10 | Promote by service and area — Must | Professional selects a package/category/area; purchase snapshots price/duration and waits for confirmed payment; only matching active promotions affect search; sponsored results are labeled and expiry is enforced. | 3 | `Promotion`, `PromotionPackage`, `services.py`, `admin.py`, promotion tests |
-| FR-11 | Administer marketplace — Must | Authorized staff can manage users/catalog/packages, verify professionals, moderate reviews and resolve reports; public APIs cannot elevate privilege. | 3 | `admin.py`, `views.py`, role/permission tests |
+| FR-07 | Manage availability — Must | A professional can pause new requests; bookings to an unavailable professional fail; previously accepted work remains visible. | 2 | `Professional.available`, service-request validation, `BusinessScreen` |
+| FR-08 | Book and track service — Must | A customer chooses a future appointment and address; professional accepts/rejects pending work, completes accepted work; customer can cancel pending/accepted work; terminal states cannot be reopened. | 3 | `Booking`, `marketplace.js`, `marketplace.js`, booking lifecycle/privacy tests |
+| FR-09 | Review completed service — Must | Only the owning customer can submit a rating 1–5 once per completed booking; incomplete/foreign bookings are rejected; hidden reviews do not contribute to public ratings. | 3 | `Review`, review route, lifecycle/moderation tests |
+| FR-10 | Promote by service and area — Must | Professional selects a package/category/area; purchase snapshots price/duration and waits for confirmed payment; only matching active promotions affect search; sponsored results are labeled and expiry is enforced. | 3 | `Promotion`, `PromotionPackage`, `marketplace.js`, `admin.js`, promotion tests |
+| FR-11 | Administer marketplace — Must | Authorized staff can manage users/catalog/packages, verify professionals, moderate reviews and resolve reports; public APIs cannot elevate privilege. | 3 | `admin.js`, `marketplace.js`, role/permission tests |
 | FR-12 | Receive updates and report issues — Must | Users see only their notifications/reports; booking/quote changes generate updates; a customer can report a professional; staff record resolution. | 3 | `Notification`, `Report`, notifications/reports tests |
 | FR-13 | Inspect business performance — Should | Professional sees own work counts, rating and active promotions; staff metrics are restricted to staff. | 3 | analytics endpoint, `screens/account.dart`, `BusinessScreen` |
-| FR-14 | Recover and verify account email — Extension | Expiring single-use codes; request response does not reveal account existence; successful password reset revokes existing sessions. | 3 | `accounts.py`, `authentication.py`, `screens/recovery.dart`, recovery tests |
-| FR-15 | Select appointments and accept estimates — Extension | Slots must be future/non-overlapping; accepting a quote snapshots its current price/terms and creates one booking; stale revisions fail. | 3 | `scheduling.py`, `screens/calendar.dart`, quote-acceptance/slot tests |
-| FR-16 | Message about a request — Extension | Only participants can read/send; read receipts are scoped; empty message bodies fail. | 3 | `conversations.py`, `screens/messages.dart`, conversation tests |
-| FR-17 | Use optional external integrations — Extension | Native push requires device permission/configuration; payment is validated server-side before activation; browser return alone never activates payment. | 3–4 | `push.dart`, `payments.py`, `deliver_push.py`, payment/push tests |
+| FR-14 | Recover and verify account email — Extension | Expiring single-use codes; request response does not reveal account existence; successful password reset revokes existing sessions. | 3 | `auth.js`, `screens/recovery.dart`, recovery tests |
+| FR-15 | Select appointments and accept estimates — Extension | Slots must be future/non-overlapping; accepting a quote snapshots its current price/terms and creates one booking; stale revisions fail. | 3 | `marketplace.js`, `screens/calendar.dart`, quote-acceptance/slot tests |
+| FR-16 | Message about a request — Extension | Only participants can read/send; read receipts are scoped; empty message bodies fail. | 3 | `marketplace.js`, `screens/messages.dart`, conversation tests |
+| FR-17 | Use optional external integrations — Extension | Native push requires device permission/configuration; payment is validated server-side before activation; browser return alone never activates payment. | 3–4 | `push.dart`, `payments.js`, `push-worker.js`, payment/push tests |
 
 ## Non-functional requirements
 
 These are acceptance targets, not claims that every production property has been
-certified. Existing automated checks are listed in [VALIDATION.md](VALIDATION.md).
+certified. Existing automated checks are listed in [migration validation](../JAVASCRIPT_MIGRATION.md).
 
 | ID | Requirement | Acceptance / measurement | Current evidence or gap |
 | --- | --- | --- | --- |
@@ -102,9 +102,9 @@ certified. Existing automated checks are listed in [VALIDATION.md](VALIDATION.md
 
 | ID | Baseline decision / assumption | Confirmation owner |
 | --- | --- | --- |
-| A-01 | Retain Flutter + Django and the existing blue/mint visual identity. | Product owner / technical lead |
+| A-01 | Retain Flutter + Node.js/Express and the existing blue/mint visual identity. | Product owner / technical lead |
 | A-02 | Use Dhaka demonstration areas, BDT and English UI; Bangla localization is not currently implemented. | Product owner / customer representatives |
-| A-03 | Staff use Django admin; no mobile staff product is added by the prototype. | Operations owner |
+| A-03 | Staff use the JavaScript administration console; no mobile staff product is added by the prototype. | Operations owner |
 | A-04 | Manual promotion-payment confirmation remains usable without gateway credentials. | Business / finance owner |
 | A-05 | Team membership, actual sprint dates, interview participants and production service levels are unassigned. | Project lead |
 | A-06 | Prototype improvements to sign-in continuation and compact discovery layout are proposals; current Flutter layout and navigation remain the implementation baseline. | Design / frontend owner |

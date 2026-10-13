@@ -1,0 +1,20 @@
+{
+  "name": "skillconnect",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": ["backend"],
+  "engines": { "node": ">=22.13.0" },
+  "scripts": {
+    "dev": "npm run dev -w backend",
+    "start": "npm run start -w backend",
+    "test": "npm run test -w backend",
+    "check": "npm run check -w backend",
+    "migrate": "npm run migrate -w backend",
+    "seed": "npm run seed -w backend",
+    "admin": "npm run admin -w backend",
+    "push-worker": "npm run push-worker -w backend",
+    "prototype": "node scripts/prototype-server.js",
+    "doctor": "node scripts/dev-doctor.js"
+  }
+}

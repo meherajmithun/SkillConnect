@@ -42,8 +42,8 @@ If signing in manually, use `demo_customer` or `demo_pro` with password
 | Likely question | Explanation |
 | --- | --- |
 | What problem does this solve? | Customers find local skilled professionals; professionals present their work and receive service requests. |
-| What is the architecture? | Flutter/Dart frontend, Django REST Framework API with JWT authentication, PostgreSQL for deployment and SQLite for local development. |
-| Why does this APK work offline? | A separate local demo store supplies sample API responses and saves changes in device storage. This demonstrates interaction flows; live use calls the Django API. |
+| What is the architecture? | Flutter/Dart frontend, Node.js/Express API with JWT authentication, PostgreSQL for deployment and SQLite for local development. |
+| Why does this APK work offline? | A separate local demo store supplies sample API responses and saves changes in device storage. This demonstrates interaction flows; live use calls the Node.js API. |
 | Is the backend implemented? | Yes: accounts, discovery, quotations, scheduling, bookings, reviews, promotions, messages and moderation/admin APIs are implemented and have automated tests. |
 | What prevents duplicate bookings? | The backend reserves pending/accepted times, checks overlaps and uses transactions and professional row locks. The local demo also rejects overlapping reservations. |
 | How are roles handled? | Live API permissions separate customers and professionals. The demo switch is a presentation tool for two sample accounts on one phone. |

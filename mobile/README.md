@@ -1,6 +1,6 @@
 # SkillConnect mobile app
 
-Flutter client for Android, iOS and web. Uses the Django API in `../backend`.
+Flutter client for Android, iOS and web. Uses the Node.js/Express API in `../backend`.
 
 From the repository root, follow the [development setup guide](../docs/sprint-1/SETUP.md)
 or [main README](../README.md), start the backend, then:

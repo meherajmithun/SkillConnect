@@ -42,11 +42,12 @@ These updates run with the existing local backend. No hosting is provisioned.
 
 ## Update a local installation
 
-Activate the Python 3.12 environment, then:
+Install the JavaScript backend dependencies, then:
 
 ```sh
-python backend/manage.py migrate
-python backend/manage.py runserver 0.0.0.0:8000
+npm ci
+npm run migrate
+npm run dev
 ```
 
 Allow your Wi-Fi IP in `ALLOWED_HOSTS`, as described in `ANDROID_SHARING.md`.
@@ -68,9 +69,8 @@ Existing accounts and data are preserved. The icon update was introduced in vers
 Local development prints email messages, including the code, in the backend
 terminal. The API never returns codes. To send real email, export the email
 variables from `.env.example`, choose
-`django.core.mail.backends.smtp.EmailBackend`, and supply your SMTP service's
-host, credentials and authorized sender. Python commands do not load `.env`
-automatically; export variables before starting the process. Docker Compose
+`EMAIL_MODE=smtp`, and supply your SMTP service's
+host, credentials and authorized sender. Node commands automatically load the optional root `.env`; exported variables take precedence. Docker Compose
 passes the configured variables through.
 
 ## Quotation bookings
@@ -127,7 +127,7 @@ conversation after acceptance; the resulting booking has its own conversation.
 4. Set `FIREBASE_CREDENTIALS` to your backend service-account JSON path and run:
 
    ```sh
-   python backend/manage.py deliver_push --watch --interval 30
+   npm run push-worker -w backend -- --interval 30
    ```
 
 5. Sign in and tap Account → **Enable device notifications**. Registration
@@ -174,7 +174,7 @@ promotion-payment integration.
 ## Validation
 
 ```sh
-python -m pytest -q
+npm test
 make check-backend
 make check-mobile test-mobile
 ```

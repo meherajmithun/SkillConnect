@@ -11,7 +11,7 @@ const services = ['Electrician', 'Plumber', 'Web Developer'];
 const fixtures = [
   {id: 1, name: 'Rahim Electrical Works', person: 'Rahim Uddin', initials: 'RU', service: 'Electrician', areas: ['Mirpur'], years: 8, price: 450, rating: 5, verified: true, available: true, bio: 'Safe wiring, switchboard repairs and dependable electrical care for homes and small businesses.', skills: 'Wiring, switchboards, lighting'},
   {id: 2, name: 'Karim Plumbing', person: 'Karim Hasan', initials: 'KH', service: 'Plumber', areas: ['Mirpur'], years: 12, price: 350, rating: 4, verified: true, available: true, bio: 'Leaking taps, water lines and bathroom installations. Clear estimates before every job.', skills: 'Leak repairs, pipe fitting, installations'},
-  {id: 3, name: 'Sadia Web Studio', person: 'Sadia Akter', initials: 'SA', service: 'Web Developer', areas: ['Dhanmondi', 'Mirpur'], years: 5, price: 2500, rating: 5, verified: true, available: true, bio: 'Thoughtful websites for local businesses. From your first landing page to a complete online store.', skills: 'Django, Flutter, e-commerce'},
+  {id: 3, name: 'Sadia Web Studio', person: 'Sadia Akter', initials: 'SA', service: 'Web Developer', areas: ['Dhanmondi', 'Mirpur'], years: 5, price: 2500, rating: 5, verified: true, available: true, bio: 'Thoughtful websites for local businesses. From your first landing page to a complete online store.', skills: 'Node.js, Flutter, e-commerce'},
 ];
 const freshState = () => ({
   role: 'customer', signedIn: false, page: 'discover', selected: 1,
@@ -163,7 +163,7 @@ function account() {
 }
 function staff() {
   const pro = ownBusiness();
-  return `<p class="eyebrow">STAFF / PROCESS SKETCH</p><h2>Review a professional</h2><p class="notice">Sample decision flow. Real staff use the Django admin website. This does not perform identity verification.</p>
+  return `<p class="eyebrow">STAFF / PROCESS SKETCH</p><h2>Review a professional</h2><p class="notice">Sample decision flow. Real staff use the JavaScript administration console. This does not perform identity verification.</p>
     <div class="card"><h3>${escapeHtml(pro.name)}</h3><p>${escapeHtml(pro.person)}</p><p class="small muted">${escapeHtml(pro.service)} · ${escapeHtml(pro.areas.join(', '))}</p><hr class="divider"><h3>Evidence checklist</h3><p class="small">Review business details, portfolio and any supporting evidence according to the agreed verification policy.</p><p class="small muted">Policy and required documents await stakeholder confirmation.</p>
     <p class="spaced"><span class="tag${pro.verified ? '' : ' pending'}">${pro.verified ? 'Staff verified' : 'Not verified'}</span></p>${button(pro.verified ? 'Mark unverified in demo' : 'Mark verified in demo', 'verify', '', 'secondary')}</div>`;
 }

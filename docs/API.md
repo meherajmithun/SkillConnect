@@ -71,7 +71,7 @@ Quotation requests use professional, category, area and details. Replies increme
 
 Bookings expose `quote`, `agreed_price`, `agreed_terms`, `duration_minutes` and `slot`. Pending and accepted bookings reserve time and cannot overlap. When `schedule_enabled` is true, new bookings must match an owned published slot's start and duration. Cancelled/rejected bookings release the time. Slots last 30–480 whole minutes and may be published within 90 days.
 
-Email codes expire in 15 minutes, allow five failed attempts and are single-use. Requesting another code invalidates the prior code. Recovery endpoints use a separate IP throttle of 20 requests/hour. Email sending defaults to the console backend in debug mode; configure SMTP to send actual messages.
+Email codes expire in 15 minutes, allow five failed attempts and are single-use. Requesting another code invalidates the prior code. Recovery endpoints use a separate IP throttle of 20 requests/hour. Email sending defaults to local console mode; set `EMAIL_MODE=smtp` to send actual messages.
 
 ## Profile update
 
@@ -79,6 +79,6 @@ Use `category_ids` and `area_ids` for writable many-to-many relations. `categori
 
 ## Access and errors
 
-Public discovery is available without registration. Protected requests return 401 without valid JWTs. Participant-only resources return 404 to outsiders. Validation errors return 400 with field/message details. Authentication is limited to 20 anonymous requests per hour; public anonymous traffic is limited to 120/hour and users to 2000/hour. Configure a shared cache and edge rate limiting for a multi-worker production deployment.
+Public discovery is available without registration. Protected requests return 401 without valid JWTs. Participant-only resources return 404 to outsiders. Validation errors return 400 with field/message details. Authentication and recovery are limited to 20 requests/hour per IP. General API traffic is limited to 2000/hour per IP. Counters are stored in the database and shared across instances.
 
-Administrative actions use Django's session-authenticated, CSRF-protected `/admin/` interface. No public API can grant staff access, verify professionals, alter pricing, confirm payment or resolve reports.
+The JavaScript administration console is available at `/admin/`. It signs in through JWT authentication and calls staff-only `/api/admin/` endpoints. No public API can grant staff access. Administrator accounts are created through `npm run admin`.

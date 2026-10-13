@@ -1,83 +1,42 @@
 # Project structure
 
-SkillConnect uses a single repository for its Django API and Flutter client.
-The existing implementation follows this layout:
+SkillConnect uses a Flutter frontend and JavaScript Node.js backend.
 
 ```text
-SkillConnect/
-├── backend/
-│   ├── config/                 # Django settings, root URLs and WSGI entry point
-│   ├── marketplace/
-│   │   ├── models.py           # Database entities
-│   │   ├── serializers.py      # API validation and representations
-│   │   ├── views.py            # API endpoints and permissions
-│   │   ├── services.py         # Business logic
-│   │   ├── accounts.py         # Email codes, recovery and verification
-│   │   ├── authentication.py   # Session revocation after password reset
-│   │   ├── scheduling.py       # Calendar slots and booking reservations
-│   │   ├── conversations.py    # Private request messages
-│   │   ├── payments.py         # SSLCommerz checkout and validation
-│   │   ├── urls.py             # Marketplace routes
-│   │   ├── admin.py            # Administration interface
-│   │   ├── migrations/         # Versioned database schema
-│   │   ├── management/commands/ # Demo data and notification delivery
-│   │   └── tests/              # Backend tests
-│   ├── manage.py
-│   ├── requirements.txt        # Runtime dependencies
-│   ├── requirements-dev.txt    # Development dependencies
-│   └── Dockerfile
-├── mobile/
-│   ├── lib/
-│   │   ├── main.dart           # App entry point and navigation
-│   │   ├── api.dart            # API client and authentication
-│   │   ├── push.dart           # Native push integration
-│   │   ├── ui.dart             # Shared interface components
-│   │   └── screens/            # Discovery, profiles, activity and account
-│   ├── test/                  # Flutter tests
-│   ├── android/               # Android platform project
-│   ├── ios/                   # iOS platform project
-│   ├── web/                   # Browser platform project
-│   └── pubspec.yaml           # Flutter dependencies and app metadata
-├── docs/                      # API, proposal coverage and setup guides
-├── .github/workflows/ci.yml    # Backend and Flutter validation
-├── .env.example               # Docker environment template
-├── .gitignore                 # Secrets and generated-file exclusions
-├── compose.yaml               # API and PostgreSQL services
-├── pytest.ini                 # Backend test configuration
-├── Makefile                   # Common development commands
-└── README.md                  # Setup and usage
+backend/
+  src/
+    server.js          HTTP startup and shutdown
+    app.js             Express middleware and route registration
+    config.js          Environment configuration
+    db.js              PostgreSQL / SQLite transaction adapter
+    schema.js          Portable relational schema
+    auth.js            JWT rotation, passwords, recovery and email verification
+    marketplace.js     Discovery, profiles, bookings, quotes, messages and reviews
+    uploads.js         Validated portfolio images and media ownership
+    payments.js        SSLCommerz checkout, validation and reconciliation
+    push-worker.js     Per-device FCM delivery and retries
+    admin.js           Staff administration API
+    seed.js            Repeatable example data
+    import-legacy.js   Read-only import of old SQLite data using Node
+    commands.js        Schema, seed, administrator and import commands
+  public/              Browser administration console
+  test/                Node test runner HTTP/integration tests
+  scripts/check.js     JavaScript syntax checks
+  data/                Ignored local database and migration backup
+  media/               Ignored portfolio photos
+  credentials/         Ignored provider credentials
+mobile/
+  lib/                 Flutter app and screens
+  lib/api.dart         Live Node API client and isolated demo switch
+  lib/demo.dart        Local offline demo store
+  test/                Flutter widget and demo tests
+docs/                   API, migration, faculty and planning documents
+scripts/                Node development doctor and prototype server
+package.json            Workspace commands
+package-lock.json       Locked JavaScript dependencies
+compose.yaml            Node API + PostgreSQL + optional push worker
 ```
 
-## Adding code
-
-Add backend entities to `models.py`, API representations to `serializers.py`,
-and endpoint behavior to `views.py`. Keep reusable business rules in
-`services.py`. Generate migrations after changing models and add behavior
-tests under `backend/marketplace/tests/`.
-
-Add app pages under `mobile/lib/screens/`, reusable widgets in `ui.dart`,
-and server communication in `api.dart`. Keep credentials and server-only
-business rules in the backend. Add Flutter tests under `mobile/test/`.
-
-## Development commands
-
-Follow the root README to install dependencies and activate a Python 3.12+
-virtual environment. From the repository root:
-
-```sh
-make help
-make migrate
-make backend
-make mobile
-make check
-make test
-```
-
-Override tools when needed, for example
-`make backend PYTHON=.venv312/bin/python`.
-The mobile target runs a browser client on port 8080 with local HTTP enabled.
-For Android emulator and deployment commands, see the root README.
-
-Local virtual environments, database files, uploaded media, build outputs and
-secrets are excluded from Git. Commit application source, dependency manifests,
-migrations, platform scaffolding and documentation.
+Start with the root README. `npm ci` installs the JavaScript dependencies,
+`npm run migrate` initializes the schema, and `npm run dev` starts the API.
+Flutter runs separately; live screens use the API and demo mode stays on-device.

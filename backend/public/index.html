@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>SkillConnect administration</title>
+    <link rel="stylesheet" href="/admin/admin.css" />
+    <script src="/admin/admin.js" defer></script>
+  </head>
+  <body>
+    <header>
+      <strong>SkillConnect</strong><span>Administration</span
+      ><button id="logout" hidden>Sign out</button>
+    </header>
+    <main>
+      <p id="feedback" role="status"></p>
+      <form id="login">
+        <h1>Administrator sign in</h1>
+        <p>Use a staff account created with the Node.js admin command.</p>
+        <label
+          >Username<input name="username" required autocomplete="username"
+        /></label>
+        <label
+          >Password<input
+            name="password"
+            type="password"
+            required
+            autocomplete="current-password" /></label
+        ><button>Sign in</button>
+      </form>
+      <section id="dashboard" hidden>
+        <h1>Marketplace administration</h1>
+        <div id="metrics"></div>
+        <nav id="tabs" aria-label="Resources"></nav>
+        <h2 id="heading"></h2>
+        <button id="add" hidden>Add item</button>
+        <div class="table-wrap">
+          <table>
+            <thead id="columns"></thead>
+            <tbody id="records"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

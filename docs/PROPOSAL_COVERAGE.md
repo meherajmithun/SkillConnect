@@ -1,11 +1,11 @@
 # Proposal implementation
 
-Source: `SkillConnect_2_Page_Proposal_Python.pdf`.
+Source: `SkillConnect_Project_Proposal.pdf`. The implementation now uses the requested JavaScript backend; the original proposal is retained as a historical scope document.
 
 | Proposal requirement | Implementation |
 | --- | --- |
 | Flutter/Dart mobile frontend | Android/iOS scaffolding and responsive Flutter screens; web preview |
-| Python Django/FastAPI backend | Django REST Framework API; Django selected from the proposed options |
+| JavaScript backend (revised technology choice) | Node.js/Express API with the same Flutter-facing contracts |
 | PostgreSQL | Environment-configured PostgreSQL, Docker Compose, PostgreSQL CI tests; SQLite local fallback |
 | JWT authentication | Registration, role separation, access/refresh tokens, rotation, logout blacklist, secure mobile storage |
 | Service and area search | Seeded physical/digital service categories and Dhaka areas, text search, filters |
@@ -21,9 +21,9 @@ Source: `SkillConnect_2_Page_Proposal_Python.pdf`.
 | Four promotion packages | Configurable starter/weekly/half-month/monthly prices and durations from PDF |
 | Promotion purchase | Manual payment confirmation, optional server-validated SSLCommerz hosted checkout and explicit development-only simulated checkout |
 | Professional analytics | Booking, completed, pending and quote counts, rating and active promotions |
-| Admin user/category management | Django admin role-aware users, account activation, categories and areas |
+| Admin user/category management | JavaScript administration console with role-aware users, account activation, categories and areas |
 | Professional verification | Staff verify/unverify actions and public badge |
-| Booking monitoring | Read-only administrative booking detail and status filters |
+| Booking monitoring | Read-only administrative booking records and status information |
 | Review moderation | Hide/restore actions; hidden reviews excluded from public rating/search |
 | Pricing and promotion control | Editable packages; snapshot pricing; confirm payment/cancel actions |
 | System analytics and reports | Staff metrics API/account dashboard, customer reports, admin resolution tracking |

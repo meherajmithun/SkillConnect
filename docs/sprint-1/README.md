@@ -26,7 +26,7 @@ Start the design prototype from the repository root:
 make prototype
 ```
 
-Open **http://localhost:8082**. It runs without Django, Flutter, credentials or
+Open **http://localhost:8082**. It runs without the live API, Flutter, credentials or
 network services. The desktop design board contains an interactive mobile frame;
 on a small screen it expands to the available width. Use **Wireframe** to inspect
 the same flows without the visual treatment. **Reset demo** clears sample changes.
@@ -36,14 +36,14 @@ Opening `prototype/index.html` directly also works.
 
 | Area | Evidence inspected | Finding / Sprint 1 implication |
 | --- | --- | --- |
-| Architecture | `backend/config/settings.py`, `mobile/lib/api.dart` | Flutter client + Django REST API, JWT auth; SQLite locally and PostgreSQL configured for deployment. Document the existing choice. |
-| Roles and data | `backend/marketplace/models.py`, `serializers.py`, `views.py`, `admin.py` | Customer/professional roles and staff administration; profile, booking, quote, review, promotion and notification entities exist. Specify permission boundaries. |
+| Architecture | `backend/src/config.js`, `mobile/lib/api.dart` | Flutter client + Node.js/Express API, JWT auth; SQLite locally and PostgreSQL configured for deployment. Document the existing choice. |
+| Roles and data | `backend/src/schema.js`, `auth.js`, `marketplace.js`, `admin.js` | Customer/professional roles and staff administration; profile, booking, quote, review, promotion and notification entities exist. Specify permission boundaries. |
 | Navigation and UI | `mobile/lib/main.dart`, `ui.dart`, `screens/` | Discover / Activity / Account, plus My business for professionals. Retain labels and brand tokens in the prototype. |
 | Core journeys | `screens/discover.dart`, `activity.dart`, `professional.dart` | Search, profile comparison, quotes, bookings, reviews, portfolio and availability are already implemented. Document their states and requirements. |
-| Additional integrations | `accounts.py`, `scheduling.py`, `conversations.py`, `payments.py`, `push.dart` | Recovery, calendar, messages, checkout and push are present; live providers need configuration. Keep them distinct from Sprint 1 design work. |
+| Additional integrations | `auth.js`, `marketplace.js`, `payments.js`, `push-worker.js`, `push.dart` | Recovery, calendar, messages, checkout and push are present; live providers need configuration. Keep them distinct from Sprint 1 design work. |
 | Planning assets | Existing `docs/` before this work | API, proposal coverage, branding and deployment notes existed. No Sprint 1 requirements register, role matrix, sprint backlog, or flow/wireframe package was found. |
 | Setup | `Makefile`, manifests, `.env.example`, CI | Dependencies and checks existed. Added a focused onboarding guide, dependency/seed/doctor/prototype targets and a useful mobile README. |
-| Verification | Existing backend and Flutter suites | [Validation record](VALIDATION.md) contains actual results and their limits. |
+| Verification | Existing backend and Flutter suites | [JavaScript migration](../JAVASCRIPT_MIGRATION.md) records current validation and limitations. |
 
 ## Review walkthrough
 
@@ -54,7 +54,7 @@ Opening `prototype/index.html` directly also works.
    Open Activity, reply to the customer's quote, then switch to Customer to view
    the reply. The simulation is local to this page.
 3. Inspect the **Staff** view to review the proposed verification decision. The
-   actual staff application remains Django admin; this small-screen sketch is
+   actual staff application remains JavaScript administration console; this small-screen sketch is
    a process illustration.
 4. Select Wireframe and check hierarchy, labels and paths. Review the documented
    booking lifecycle and promotion rules for the later sprints.
