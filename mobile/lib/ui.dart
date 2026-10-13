@@ -8,6 +8,23 @@ const mist = Color(0xFFF1F5FB);
 const teal = Color(0xFF0A786E);
 const coral = Color(0xFFE97759);
 
+class BrandIcon extends StatelessWidget {
+  final double size;
+  const BrandIcon({super.key, this.size = 40});
+
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+    borderRadius: BorderRadius.circular(size * .24),
+    child: Image.asset(
+      'assets/icon/skillconnect-icon.png',
+      width: size,
+      height: size,
+      fit: BoxFit.cover,
+      semanticLabel: 'SkillConnect',
+    ),
+  );
+}
+
 ThemeData appTheme() => ThemeData(
   useMaterial3: true,
   colorScheme: ColorScheme.fromSeed(
@@ -96,7 +113,7 @@ IconData serviceIcon(String? name) => switch (name) {
 };
 
 String money(dynamic value) =>
-    'BDT ${num.tryParse('$value')?.toStringAsFixed(0) ?? value}';
+    'BDT ${num.tryParse('$value')?.toStringAsFixed(2) ?? value}';
 String dateLabel(dynamic value) {
   final d = DateTime.tryParse('$value')?.toLocal();
   if (d == null) return '—';

@@ -9,7 +9,14 @@ Base path: `/api/`. JSON requests and responses except portfolio image upload, w
 | `auth/login/` | POST | Username + password → access and refresh JWTs |
 | `auth/refresh/` | POST | Refresh token → rotated tokens; old refresh is blacklisted |
 | `auth/logout/` | POST | Refresh token → blacklist; existing access expires within 30 minutes |
-| `me/` | GET, PATCH | Current account; role, username and staff status cannot be changed here |
+| `me/` | GET, PATCH | Current account including read-only `email_verified`; changing email resets verification |
+| `auth/password-reset/` | POST | Email → generic acknowledgement; send an eight-digit recovery code if account exists |
+| `auth/password-reset/confirm/` | POST | Email, code and new_password → change password and revoke existing sessions |
+| `auth/email-verification/` | POST | Authenticated user requests an email code |
+| `auth/email-verification/confirm/` | POST | Authenticated user confirms their own email with code |
+| `slots/` | GET, POST | Professional's own future slots; create with starts_at and ends_at |
+| `slots/{id}/` | DELETE | Remove an owned slot with no booking history |
+| `professionals/{id}/availability/` | GET | Public schedule_enabled and unreserved future slots; no customer details |
 | `categories/` | GET | Public active categories; unpaginated |
 | `areas/` | GET | Public areas and center coordinates; unpaginated |
 | `professionals/` | GET | Public search with pagination and ranking |
@@ -24,9 +31,15 @@ Base path: `/api/`. JSON requests and responses except portfolio image upload, w
 | `quotes/` | GET, POST | Participant-only list; customer requests an estimate |
 | `quotes/{id}/` | GET | Participant-only quotation detail |
 | `quotes/{id}/reply/` | POST | Requested professional replies with positive `amount` and `response` |
+| `quotes/{id}/accept/` | POST | Customer supplies quote_revision, address, scheduled_at, duration_minutes and optional slot; creates one linked booking |
+| `bookings/{id}/messages/`, `quotes/{id}/messages/` | GET, POST | Participant-only paginated conversations; send body |
+| `bookings/{id}/messages/read/`, `quotes/{id}/messages/read/` | POST | Mark incoming messages through the supplied through_id as read |
 | `reviews/` | POST | Customer reviews their own completed `booking`; `rating` 1–5 and `comment`; once per booking |
 | `packages/` | GET | Public active promotion packages; unpaginated |
 | `promotions/` | GET, POST | Professional's purchases; create with package, category and area IDs |
+| `promotions/{id}/payment/` | POST, GET | Owner creates/resumes SSLCommerz checkout, or independently refreshes and validates its status |
+| `payments/ipn/` | POST | Public provider callback with tran_id and val_id; verifies payment server-to-server |
+| `payments/return/` | GET, POST | Informational browser return; never trusts posted payment status |
 | `notifications/` | GET | Own notification inbox |
 | `notifications/read-all/` | POST | Mark own inbox read |
 | `reports/` | GET, POST | Own reports; create with professional ID and reason |
@@ -54,7 +67,11 @@ Distance requires both coordinates. Unknown business locations are excluded when
 
 The professional must be active, available and serve the requested service and area. The schedule must be in the future. Customers can cancel pending/accepted bookings. Professionals accept/reject pending bookings and complete accepted bookings. Terminal states cannot be reversed. Both parties receive in-app updates.
 
-Quotation requests use professional, category, area and details. A replied quote is an estimate; the customer creates a separate booking, and should include agreed terms in its details.
+Quotation requests use professional, category, area and details. Replies increment the quotation revision. Accept with `quote_revision`, `scheduled_at`, `duration_minutes` (default 60), `address` and optional `slot`. The backend snapshots the quotation price and terms and returns the resulting booking. Duplicate acceptance returns the same booking. Accepted estimates cannot be updated.
+
+Bookings expose `quote`, `agreed_price`, `agreed_terms`, `duration_minutes` and `slot`. Pending and accepted bookings reserve time and cannot overlap. When `schedule_enabled` is true, new bookings must match an owned published slot's start and duration. Cancelled/rejected bookings release the time. Slots last 30–480 whole minutes and may be published within 90 days.
+
+Email codes expire in 15 minutes, allow five failed attempts and are single-use. Requesting another code invalidates the prior code. Recovery endpoints use a separate IP throttle of 20 requests/hour. Email sending defaults to the console backend in debug mode; configure SMTP to send actual messages.
 
 ## Profile update
 

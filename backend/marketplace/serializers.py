@@ -11,11 +11,32 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'email', 'first_name', 'last_name', 'phone', 'role', 'is_staff']
-        read_only_fields = ['id', 'role', 'is_staff', 'username']
+        fields += ['email_verified']
+        read_only_fields = ['id', 'role', 'is_staff', 'username', 'email_verified']
+
+    def validate_email(self, value):
+        value = value.strip().lower()
+        if User.objects.filter(email__iexact=value).exclude(pk=self.instance.pk).exists():
+            raise serializers.ValidationError('This email is already registered.')
+        return value
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        instance = User.objects.select_for_update().get(pk=instance.pk)
+        if 'email' in validated_data and validated_data['email'] != instance.email:
+            instance.email_verified = False
+            instance.emailchallenge_set.update(used=True)
+        return super().update(instance, validated_data)
 
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8, max_length=128)
+
+    def validate_email(self, value):
+        value = value.strip().lower()
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError('This email is already registered.')
+        return value
 
     class Meta:
         model = User
@@ -101,6 +122,7 @@ class ProfessionalSerializer(serializers.ModelSerializer):
                   'categories', 'areas', 'category_ids', 'area_ids', 'available', 'verified',
                   'starting_price', 'latitude', 'longitude', 'portfolio', 'rating', 'review_count',
                   'distance_km', 'promoted']
+        fields += ['schedule_enabled']
         read_only_fields = ['id', 'verified']
 
 
@@ -131,7 +153,8 @@ class BookingSerializer(ServiceRequestValidation, serializers.ModelSerializer):
         fields = ['id', 'professional', 'professional_name', 'customer_name', 'category',
                   'category_name', 'area', 'area_name', 'scheduled_at', 'address', 'details',
                   'status', 'created_at', 'review']
-        read_only_fields = ['id', 'status', 'created_at']
+        fields += ['duration_minutes', 'slot', 'quote', 'agreed_price', 'agreed_terms']
+        read_only_fields = ['id', 'status', 'created_at', 'quote', 'agreed_price', 'agreed_terms']
 
     def validate_scheduled_at(self, value):
         if value <= timezone.now():
@@ -143,12 +166,20 @@ class QuoteSerializer(ServiceRequestValidation, serializers.ModelSerializer):
     professional_name = serializers.CharField(source='professional.business_name', read_only=True)
     customer_name = serializers.CharField(source='customer.get_full_name', read_only=True)
     category_name = serializers.CharField(source='category.name', read_only=True)
+    booking_id = serializers.SerializerMethodField()
+
+    def get_booking_id(self, obj):
+        try:
+            return obj.booking.pk
+        except Booking.DoesNotExist:
+            return None
 
     class Meta:
         model = Quote
         fields = ['id', 'professional', 'professional_name', 'customer_name', 'category',
                   'category_name', 'area', 'details', 'amount', 'response', 'created_at']
-        read_only_fields = ['id', 'amount', 'response', 'created_at']
+        fields += ['revision', 'booking_id']
+        read_only_fields = ['id', 'amount', 'response', 'created_at', 'revision', 'booking_id']
 
 
 class QuoteReplySerializer(serializers.Serializer):

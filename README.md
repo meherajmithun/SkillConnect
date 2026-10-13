@@ -4,6 +4,8 @@
 
 A local service marketplace built from [the project proposal](SkillConnect_2_Page_Proposal_Python.pdf). Customers discover and compare professionals, request quotations, book services and review completed work. Professionals manage a digital business profile, receive requests and purchase service/area-specific promotions.
 
+The version 1.1.0 update adds email recovery/verification, appointment scheduling, accepted-quotation bookings, private messaging and configurable SSLCommerz checkout. See [app updates and integration setup](docs/APP_UPDATES.md).
+
 ## Stack
 
 - Flutter/Dart app for Android, iOS and web.
@@ -13,6 +15,17 @@ A local service marketplace built from [the project proposal](SkillConnect_2_Pag
 - Django admin for users, categories, verification, review moderation, promotion pricing and reports.
 
 See [project structure](docs/PROJECT_STRUCTURE.md) for the directory layout and module responsibilities. Run `make help` for common development commands after installing the dependencies below.
+
+## Sprint 1 — Planning & UI/UX
+
+The [Sprint 1 package](docs/sprint-1/README.md) covers all six Week 1–2 WBS items:
+requirements, project planning, stakeholders, user flows/wireframes, UI design and
+development setup. It includes code traceability and an interactive phone
+prototype with customer/professional journeys and a wireframe mode.
+
+Run `make prototype` and open **http://localhost:8082** beside your editor. The
+prototype uses sample data and runs independently of the actual Flutter app.
+See the [setup guide](docs/sprint-1/SETUP.md) for first-time installation and checks.
 
 ## Run the backend
 
@@ -77,7 +90,7 @@ For a native production build, use an HTTPS `API_URL`, omit `ALLOW_HTTP=true`, a
 
 The four proposal packages are seeded at BDT 100 / 1 day, 300 / 7 days, 500 / 15 days and 800 / 30 days. Administrators can edit prices, durations and availability. A purchase snapshots the price and duration so later package edits cannot change an existing order.
 
-Purchases remain **pending payment**. Collect and verify payment outside the app, then use **Confirm received payment and activate promotions** in Django admin. There is no live payment gateway or card collection. Confirming twice cannot extend a promotion. A development-only `DEMO_PAYMENTS=true` setting activates simulated purchases immediately; the app explicitly labels this mode, and production disables it.
+Purchases remain **pending payment**. Collect and verify payment outside the app, then use **Confirm received payment and activate promotions** in Django admin. Optional SSLCommerz hosted checkout provides server-validated promotion payments when merchant credentials are configured. The app does not collect card details. See [payment setup](docs/APP_UPDATES.md#promotion-payments). Confirming twice cannot extend a promotion. A development-only `DEMO_PAYMENTS=true` setting activates simulated purchases immediately; the app explicitly labels this mode, and production disables it.
 
 Sponsored results only apply when both the searched category and area match an active, paid promotion. Expiry is evaluated at search time. Recommended ranking uses rating + profile quality + a bounded promotion boost − distance penalty. Highest-rated and nearest sorting remain available. Sponsored cards are labeled. Distance is measured from the chosen area's center to a professional's business coordinates, not route distance or live GPS.
 
@@ -85,12 +98,7 @@ Sponsored results only apply when both the searched category and area match an a
 
 Booking, quotation and promotion updates are always available in the app's Notifications page. Native push is optional:
 
-1. Configure your Android/iOS Firebase project using FlutterFire and supply the platform configuration files. They are excluded from Git.
-2. For Android, apply the Google Services Gradle plugin following Firebase setup. For iOS, enable Push Notifications / Remote Notifications and upload the APNs key.
-3. Build with `--dart-define=FIREBASE_ENABLED=true` and tap **Enable device notifications** in Account.
-4. Set `FIREBASE_CREDENTIALS` to a backend service-account JSON path. Run `python backend/manage.py deliver_push` periodically as a **single worker**.
-
-The worker retries failed notifications and removes invalid registration tokens. Delivery is at least once, so a retry can duplicate a previously delivered push. This implementation enables FCM on native platforms; web uses in-app notifications. Firebase/APNs credentials and real-device delivery must be validated for your own project. See the [official FCM setup guide](https://firebase.google.com/docs/cloud-messaging/flutter/get-started).
+See [native push setup](docs/APP_UPDATES.md#native-push-notifications) for Firebase build configuration, APNs requirements and the local/Docker worker. Enable notifications in Account after building with your configuration. The worker tracks each device separately, retries failed sends and removes invalid tokens. In-app notifications work without Firebase credentials.
 
 ## Validate
 

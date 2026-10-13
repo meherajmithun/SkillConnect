@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../api.dart';
 import '../ui.dart';
+import 'recovery.dart';
 
 Future<bool> requireLogin(BuildContext context, Api api) async {
   if (api.signedIn) return true;
@@ -163,6 +164,16 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
               ),
               const Gap(),
+              if (!register)
+                TextButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => RecoveryScreen(api: widget.api),
+                    ),
+                  ),
+                  child: const Text('Forgot password?'),
+                ),
               TextButton(
                 onPressed: () => setState(() => register = !register),
                 child: Text(
@@ -192,7 +203,7 @@ class AccountScreen extends StatelessWidget {
         width: 640,
         children: [
           const Gap(36),
-          const Icon(Icons.handshake_outlined, size: 64, color: blue),
+          const Center(child: BrandIcon(size: 88)),
           const Gap(24),
           Text(
             'Find skills.\nConnect locally.',
@@ -253,6 +264,28 @@ class AccountScreen extends StatelessWidget {
           ),
         ),
         const Gap(),
+        ListTile(
+          leading: Icon(
+            api.user!['email_verified'] == true
+                ? Icons.verified_outlined
+                : Icons.mark_email_unread_outlined,
+          ),
+          title: Text(
+            api.user!['email_verified'] == true
+                ? 'Email verified'
+                : 'Verify your email',
+          ),
+          subtitle: const Text('Confirm ownership of your email address.'),
+          onTap: api.user!['email_verified'] == true
+              ? null
+              : () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        RecoveryScreen(api: api, verification: true),
+                  ),
+                ),
+        ),
         ListTile(
           leading: const Icon(Icons.edit_outlined),
           title: const Text('Edit account details'),

@@ -48,7 +48,10 @@ class Api extends ChangeNotifier {
       serverUrl = await storage.read(key: 'server_url') ?? baseUrl;
       _access = await storage.read(key: 'access');
       _refresh = await storage.read(key: 'refresh');
-      if (_access != null) user = await get('me/');
+      if (_access != null) {
+        user = await get('me/');
+        await push.restoreForUser();
+      }
     } catch (e) {
       startupError = 'Could not restore your session. Sign in again when the server is available.';
       await clearSession();
@@ -163,6 +166,7 @@ class Api extends ChangeNotifier {
     _refresh = data['refresh'];
     await saveTokens();
     user = await get('me/');
+    await push.restoreForUser();
     notifyListeners();
   }
 

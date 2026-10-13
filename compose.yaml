@@ -16,7 +16,7 @@ services:
     build: backend
     ports:
       - "8000:8000"
-    environment:
+    environment: &backend_environment
       DEBUG: ${DEBUG:-true}
       SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in .env}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,10.0.2.2}
@@ -26,10 +26,39 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_HOST: db
       DEMO_PAYMENTS: ${DEMO_PAYMENTS:-false}
+      EMAIL_BACKEND: ${EMAIL_BACKEND:-django.core.mail.backends.console.EmailBackend}
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-true}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-noreply@skillconnect.local}
+      SSLCOMMERZ_STORE_ID: ${SSLCOMMERZ_STORE_ID:-}
+      SSLCOMMERZ_STORE_PASSWORD: ${SSLCOMMERZ_STORE_PASSWORD:-}
+      SSLCOMMERZ_SANDBOX: ${SSLCOMMERZ_SANDBOX:-true}
+      PAYMENT_CALLBACK_BASE_URL: ${PAYMENT_CALLBACK_BASE_URL:-}
+      FIREBASE_CREDENTIALS: ${FIREBASE_CREDENTIALS:-}
     volumes:
       - media_data:/app/media
+      - ./backend/credentials:/app/credentials:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/', timeout=5)"]
+      interval: 60s
+      timeout: 10s
+      start_period: 30s
+      retries: 5
     depends_on:
       db:
+        condition: service_healthy
+  push-worker:
+    profiles: [push]
+    build: backend
+    environment: *backend_environment
+    command: [python, manage.py, deliver_push, --watch, --interval, "30"]
+    volumes:
+      - ./backend/credentials:/app/credentials:ro
+    depends_on:
+      api:
         condition: service_healthy
 volumes:
   postgres_data:

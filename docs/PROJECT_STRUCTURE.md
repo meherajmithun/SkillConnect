@@ -12,6 +12,11 @@ SkillConnect/
 │   │   ├── serializers.py      # API validation and representations
 │   │   ├── views.py            # API endpoints and permissions
 │   │   ├── services.py         # Business logic
+│   │   ├── accounts.py         # Email codes, recovery and verification
+│   │   ├── authentication.py   # Session revocation after password reset
+│   │   ├── scheduling.py       # Calendar slots and booking reservations
+│   │   ├── conversations.py    # Private request messages
+│   │   ├── payments.py         # SSLCommerz checkout and validation
 │   │   ├── urls.py             # Marketplace routes
 │   │   ├── admin.py            # Administration interface
 │   │   ├── migrations/         # Versioned database schema

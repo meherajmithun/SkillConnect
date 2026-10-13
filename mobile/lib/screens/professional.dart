@@ -5,6 +5,9 @@ import '../api.dart';
 import '../ui.dart';
 import 'account.dart';
 import 'discover.dart';
+import 'calendar.dart';
+
+import 'package:url_launcher/url_launcher.dart';
 
 class BusinessScreen extends StatelessWidget {
   final Api api;
@@ -57,6 +60,15 @@ class BusinessScreen extends StatelessWidget {
               }
             },
           ),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.calendar_month_outlined),
+            label: const Text('Manage availability calendar'),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => ManageCalendarScreen(api: api)),
+            ),
+          ),
+          const Gap(),
           Wrap(
             spacing: 12,
             runSpacing: 12,
@@ -581,6 +593,16 @@ class PromotionScreen extends StatefulWidget {
 }
 
 class _PromotionScreenState extends State<PromotionScreen> {
+  Future<void> openCheckout(int promotion) async {
+    final payment = await widget.api.post('promotions/$promotion/payment/', {});
+    final uri = Uri.parse(payment['gateway_url']);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      throw ApiException(
+        'Could not open checkout. Tap Pay now to reopen the payment page.',
+      );
+    }
+  }
+
   int? category, area, package;
   @override
   void initState() {
@@ -601,6 +623,8 @@ class _PromotionScreenState extends State<PromotionScreen> {
       builder: (data, reload) {
         final packages = (data[0] as List).cast<Json>();
         final demo = data[2]['demo_payments'] == true;
+        final online = data[2]['online_payments'] == true;
+        final sandbox = data[2]['payment_sandbox'] == true;
         if (category == null || area == null) {
           return PageBody(
             children: [
@@ -710,7 +734,11 @@ class _PromotionScreenState extends State<PromotionScreen> {
             Text(
               demo
                   ? 'Demo checkout is enabled. No money is charged; the promotion activates immediately for testing.'
-                  : 'Your purchase stays pending until payment is received and confirmed by the administrator. No card details are collected in this app.',
+                  : online
+                  ? sandbox
+                        ? 'Sandbox checkout is enabled for testing. No real money is charged.'
+                        : 'Pay securely through SSLCommerz. Your promotion activates after payment verification.'
+                  : 'Your purchase stays pending until payment is received and confirmed by the administrator.',
             ),
             const Gap(),
             ActionButton(
@@ -746,17 +774,20 @@ class _PromotionScreenState extends State<PromotionScreen> {
                   ),
                 );
                 if (confirm != true) return;
-                await widget.api.post('promotions/', {
+                final purchase = await widget.api.post('promotions/', {
                   'package': package,
                   'category': category,
                   'area': area,
                 });
                 reload();
+                if (online && !demo) await openCheckout(purchase['id']);
                 if (context.mounted) {
                   showMessage(
                     context,
                     demo
                         ? 'Demo promotion activated.'
+                        : online
+                        ? 'Return here after checkout and refresh payment status.'
                         : 'Purchase requested. Awaiting payment confirmation.',
                   );
                 }
@@ -794,6 +825,40 @@ class _PromotionScreenState extends State<PromotionScreen> {
                       Text('${p['area_name']} · ${money(p['price_paid'])}'),
                       if (p['expires_at'] != null)
                         Text('Expires ${dateLabel(p['expires_at'])}'),
+                      if (online && p['status'] == 'pending') ...[
+                        const Gap(),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            ActionButton(
+                              label: sandbox ? 'Open test checkout' : 'Pay now',
+                              icon: Icons.payment_outlined,
+                              action: () => openCheckout(p['id']),
+                            ),
+                            ActionButton(
+                              label: 'Refresh payment status',
+                              icon: Icons.refresh,
+                              action: () async {
+                                final payment = await widget.api.get(
+                                  'promotions/${p['id']}/payment/',
+                                );
+                                reload();
+                                if (context.mounted) {
+                                  showMessage(
+                                    context,
+                                    payment['status'] == 'paid'
+                                        ? 'Payment verified. Promotion activated.'
+                                        : payment['status'] == 'review'
+                                        ? 'Payment needs administrator review. Please do not pay again.'
+                                        : 'Payment status: ${payment['status']}',
+                                  );
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),

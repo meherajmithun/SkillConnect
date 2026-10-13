@@ -1,0 +1,15 @@
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/icon/skillconnect-icon.png
+  min_sdk_android: 24
+  adaptive_icon_background: "#2358D5"
+  adaptive_icon_foreground: assets/icon/skillconnect-icon.png
+  adaptive_icon_foreground_inset: 0
+  remove_alpha_ios: true
+  background_color_ios: "#2358D5"
+  web:
+    generate: true
+    image_path: assets/icon/skillconnect-icon.png
+    background_color: "#F1F5FB"
+    theme_color: "#2358D5"

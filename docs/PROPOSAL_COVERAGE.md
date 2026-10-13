@@ -16,10 +16,10 @@ Source: `SkillConnect_2_Page_Proposal_Python.pdf`.
 | Request quotations | Customer requests, professional price/response, private quote tracking |
 | Booking and tracking | Future scheduling, pending/accepted/rejected/completed/cancelled lifecycle and participant authorization |
 | Rating and reviews | One review per owned completed booking; admin visibility moderation affects ratings |
-| Availability | Professional can pause new bookings/quote requests |
+| Availability | Professional can pause requests, publish appointment slots and require calendar selection; overlapping reservations are rejected |
 | Area-based timed promotion | Category/area matching, automatic expiry, labeled sponsored cards, bounded quality-aware boost |
 | Four promotion packages | Configurable starter/weekly/half-month/monthly prices and durations from PDF |
-| Promotion purchase | Pending purchase and manual verified-payment activation; explicit development-only simulated checkout |
+| Promotion purchase | Manual payment confirmation, optional server-validated SSLCommerz hosted checkout and explicit development-only simulated checkout |
 | Professional analytics | Booking, completed, pending and quote counts, rating and active promotions |
 | Admin user/category management | Django admin role-aware users, account activation, categories and areas |
 | Professional verification | Staff verify/unverify actions and public badge |
@@ -32,6 +32,6 @@ Source: `SkillConnect_2_Page_Proposal_Python.pdf`.
 
 ## Scope boundaries
 
-This repository supplies a working local marketplace and deployment scaffolding. It does not provision public hosting, a payment merchant account, Firebase credentials, APNs credentials or production signing keys. No real payment gateway is claimed: administrators verify externally received payments. Push delivery needs the documented native Firebase setup and a scheduled worker. In-app notifications work without those credentials.
+This repository supplies a working local marketplace and deployment scaffolding. It does not provision public hosting, a payment merchant account, Firebase credentials, APNs credentials or production signing keys. SSLCommerz integration is configurable; live payments require merchant credentials and reachable HTTPS callbacks. Manual confirmation remains available. Push delivery needs the documented native Firebase setup and a scheduled worker. In-app notifications work without those credentials.
 
-The proposal does not specify route-based distance, live GPS, chat, identity-document upload, payment escrow or refunds; those are not implemented. Professional verification is a staff decision. The admin console is browser-based; customers and professionals use the Flutter app. Services and areas are configurable in admin rather than tied to external geocoding.
+Private booking/quotation messaging and email account recovery/verification are implemented as additional features. Route-based distance, live GPS, identity-document upload, payment escrow and refunds are not implemented. Professional verification is a staff decision. The admin console is browser-based; customers and professionals use the Flutter app. Services and areas are configurable in admin rather than tied to external geocoding.

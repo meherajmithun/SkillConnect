@@ -3,16 +3,20 @@ import 'package:flutter/material.dart';
 import '../api.dart';
 import '../ui.dart';
 import 'account.dart';
+import 'calendar.dart';
+import 'messages.dart';
 
 class ServiceRequestScreen extends StatefulWidget {
   final Api api;
   final Json profile;
   final bool isQuote;
+  final Json? quote;
   const ServiceRequestScreen({
     super.key,
     required this.api,
     required this.profile,
     required this.isQuote,
+    this.quote,
   });
   @override
   State<ServiceRequestScreen> createState() => _ServiceRequestScreenState();
@@ -24,11 +28,17 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
   final details = TextEditingController();
   late int? category, area;
   DateTime? scheduled;
+  Json? appointment;
   @override
   void initState() {
     super.initState();
     category = (widget.profile['categories'] as List).firstOrNull?['id'];
     area = (widget.profile['areas'] as List).firstOrNull?['id'];
+    if (widget.quote != null) {
+      category = widget.quote!['category'];
+      area = widget.quote!['area'];
+      details.text = widget.quote!['details'];
+    }
   }
 
   @override
@@ -66,7 +76,7 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
                       child: Text(c['name']),
                     ),
                 ],
-                onChanged: (v) => category = v,
+                onChanged: widget.quote != null ? null : (v) => category = v,
                 validator: (v) => v == null ? 'Choose a service.' : null,
               ),
               const Gap(),
@@ -80,7 +90,7 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
                       child: Text(a['name']),
                     ),
                 ],
-                onChanged: (v) => area = v,
+                onChanged: widget.quote != null ? null : (v) => area = v,
                 validator: (v) => v == null ? 'Choose an area.' : null,
               ),
               const Gap(),
@@ -104,35 +114,33 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
                           : dateLabel(scheduled!.toIso8601String()),
                     ),
                     onPressed: () async {
-                      final now = DateTime.now();
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: now.add(const Duration(days: 1)),
-                        firstDate: now,
-                        lastDate: now.add(const Duration(days: 365)),
+                      final value = await chooseAppointment(
+                        context,
+                        widget.api,
+                        widget.profile['id'],
                       );
-                      if (date == null || !context.mounted) return;
-                      final time = await showTimePicker(
-                        context: context,
-                        initialTime: const TimeOfDay(hour: 10, minute: 0),
-                      );
-                      if (time != null) {
-                        setState(
-                          () => scheduled = DateTime(
-                            date.year,
-                            date.month,
-                            date.day,
-                            time.hour,
-                            time.minute,
-                          ),
-                        );
+                      if (value != null && mounted) {
+                        setState(() {
+                          appointment = value;
+                          scheduled = DateTime.parse(value['scheduled_at'])
+                              .toLocal();
+                        });
                       }
                     },
                   ),
                 ),
                 const Gap(),
               ],
+              if (widget.quote != null) ...[
+                Text(
+                  'Agreed price: ${money(widget.quote!['amount'])}',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                Text(widget.quote!['response']),
+                const Gap(),
+              ],
               TextFormField(
+                readOnly: widget.quote != null,
                 controller: details,
                 maxLines: 5,
                 maxLength: 2000,
@@ -144,7 +152,9 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
               ),
               const Gap(24),
               ActionButton(
-                label: widget.isQuote
+                label: widget.quote != null
+                    ? 'Accept estimate and request booking'
+                    : widget.isQuote
                     ? 'Send quote request'
                     : 'Send booking request',
                 action: () async {
@@ -156,7 +166,11 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
                     return;
                   }
                   await widget.api.post(
-                    widget.isQuote ? 'quotes/' : 'bookings/',
+                    widget.quote != null
+                        ? 'quotes/${widget.quote!['id']}/accept/'
+                        : widget.isQuote
+                        ? 'quotes/'
+                        : 'bookings/',
                     {
                       'professional': widget.profile['id'],
                       'category': category,
@@ -165,6 +179,10 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
                       if (!widget.isQuote) ...{
                         'address': address.text.trim(),
                         'scheduled_at': scheduled!.toUtc().toIso8601String(),
+                        'duration_minutes': appointment!['duration_minutes'],
+                        'slot': appointment!['slot'],
+                        if (widget.quote != null)
+                          'quote_revision': widget.quote!['revision'],
                       },
                     },
                   );
@@ -435,7 +453,13 @@ class BookingCard extends StatelessWidget {
             const Gap(8),
             Text('#${b['id']} · ${b['category_name']} · ${b['area_name']}'),
             const Gap(8),
-            Text(dateLabel(b['scheduled_at'])),
+            Text(
+              '${dateLabel(b['scheduled_at'])} · ${b['duration_minutes'] ?? 60} minutes',
+            ),
+            if (b['agreed_price'] != null) ...[
+              Text('Agreed price: ${money(b['agreed_price'])}'),
+              Text(b['agreed_terms']),
+            ],
             Text(b['address']),
             const Gap(12),
             Text(b['details']),
@@ -444,6 +468,23 @@ class BookingCard extends StatelessWidget {
               spacing: 10,
               runSpacing: 10,
               children: [
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.chat_bubble_outline),
+                  label: const Text('Messages'),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => MessagesScreen(
+                        api: api,
+                        kind: 'bookings',
+                        requestId: b['id'],
+                        title: api.isProfessional
+                            ? b['customer_name']
+                            : b['professional_name'],
+                      ),
+                    ),
+                  ),
+                ),
                 for (final target in options)
                   ActionButton(
                     label: {
@@ -564,7 +605,29 @@ class QuoteCard extends StatelessWidget {
             ),
             Text(quote['response']),
           ],
-          if (api.isProfessional) ...[
+          const Gap(),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.chat_bubble_outline),
+            label: const Text('Messages'),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => MessagesScreen(
+                  api: api,
+                  kind: 'quotes',
+                  requestId: quote['id'],
+                  title: api.isProfessional
+                      ? quote['customer_name']
+                      : quote['professional_name'],
+                ),
+              ),
+            ),
+          ),
+          if (quote['booking_id'] != null) ...[
+            const Gap(),
+            Tag('Accepted · Booking #${quote['booking_id']}'),
+          ],
+          if (api.isProfessional && quote['booking_id'] == null) ...[
             const Gap(),
             OutlinedButton.icon(
               icon: const Icon(Icons.reply),
@@ -582,7 +645,9 @@ class QuoteCard extends StatelessWidget {
               },
             ),
           ],
-          if (!api.isProfessional && quote['amount'] != null) ...[
+          if (!api.isProfessional &&
+              quote['amount'] != null &&
+              quote['booking_id'] == null) ...[
             const Gap(),
             TextButton(
               onPressed: () async {
@@ -597,13 +662,14 @@ class QuoteCard extends StatelessWidget {
                         api: api,
                         profile: p,
                         isQuote: false,
+                        quote: quote,
                       ),
                     ),
                   );
                 }
                 reload();
               },
-              child: const Text('Book this professional'),
+              child: const Text('Accept estimate and book'),
             ),
           ],
         ],

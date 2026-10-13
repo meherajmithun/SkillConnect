@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'api.dart';
@@ -41,9 +43,47 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int selected = 0;
+  StreamSubscription<String>? foreground;
+  StreamSubscription<void>? opened;
+
+  @override
+  void initState() {
+    super.initState();
+    foreground = widget.api.push.foregroundMessages.stream.listen((message) {
+      if (mounted) showMessage(context, message);
+    });
+    opened = widget.api.push.openedNotifications.stream.listen(
+      (_) => openNotifications(),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) => openNotifications());
+  }
+
+  void openNotifications() {
+    if (!mounted || !widget.api.signedIn || !widget.api.push.pendingOpen) {
+      return;
+    }
+    widget.api.push.pendingOpen = false;
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => NotificationsScreen(api: widget.api)),
+    );
+  }
+
+  @override
+  void dispose() {
+    foreground?.cancel();
+    opened?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final api = widget.api;
+    if (api.push.pendingOpen && api.signedIn) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (ModalRoute.of(context)?.isCurrent == true) openNotifications();
+      });
+    }
     final destinations = [
       const NavigationDestination(
         icon: Icon(Icons.explore_outlined),
@@ -78,18 +118,7 @@ class _HomeShellState extends State<HomeShell> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              padding: const EdgeInsets.all(7),
-              decoration: BoxDecoration(
-                color: blue,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.handshake_outlined,
-                color: Colors.white,
-                size: 22,
-              ),
-            ),
+            const BrandIcon(),
             const SizedBox(width: 10),
             const Flexible(
               child: Text(

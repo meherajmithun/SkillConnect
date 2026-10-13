@@ -15,6 +15,7 @@ from .serializers import (RegisterSerializer, UserSerializer, CategorySerializer
     ProfessionalSerializer, BookingSerializer, QuoteSerializer, QuoteReplySerializer,
     ReviewSerializer, PortfolioSerializer, PromotionPackageSerializer, PromotionSerializer,
     NotificationSerializer, ReportSerializer)
+from .accounts import SessionTokenSerializer, SessionRefreshSerializer
 
 
 class AuthThrottle(AnonRateThrottle):
@@ -23,10 +24,12 @@ class AuthThrottle(AnonRateThrottle):
 
 class LoginView(TokenObtainPairView):
     throttle_classes = [AuthThrottle]
+    serializer_class = SessionTokenSerializer
 
 
 class RefreshView(TokenRefreshView):
     throttle_classes = [AuthThrottle]
+    serializer_class = SessionRefreshSerializer
 
 
 class RegisterView(generics.CreateAPIView):
@@ -39,7 +42,7 @@ class MeView(generics.RetrieveUpdateAPIView):
     serializer_class = UserSerializer
 
     def get_object(self):
-        return self.request.user
+        return User.objects.get(pk=self.request.user.pk)
 
 
 class CategoryView(generics.ListAPIView):
@@ -163,23 +166,40 @@ class BookingViewSet(viewsets.GenericViewSet, generics.ListAPIView, generics.Cre
 
     @transaction.atomic
     def perform_create(self, serializer):
-        booking = serializer.save(customer=self.request.user)
+        from .scheduling import reserve_booking
+        booking = reserve_booking(serializer, self.request.user)
         Notification.objects.create(user=booking.professional.user, message=f'New booking #{booking.id}: {booking.category.name}')
 
     @action(detail=True, methods=['post'], url_path='status')
     @transaction.atomic
     def change_status(self, request, pk=None):
-        booking = self.get_queryset().select_for_update().get(pk=self.get_object().pk)
+        from .scheduling import validate_booking_schedule
+        initial = self.get_object()
+        pro = Professional.objects.select_for_update().get(pk=initial.professional_id)
+        booking = self.get_queryset().select_for_update().get(pk=initial.pk)
         target = request.data.get('status')
         is_pro = booking.professional.user_id == request.user.id
         allowed = {'pending': ['accepted', 'rejected'], 'accepted': ['completed']} if is_pro else {'pending': ['cancelled'], 'accepted': ['cancelled']}
         if target not in allowed.get(booking.status, []):
             raise serializers.ValidationError('This booking status change is not allowed.')
+        if target == 'accepted':
+            validate_booking_schedule({'professional': pro, 'scheduled_at': booking.scheduled_at,
+                'duration_minutes': booking.duration_minutes, 'slot': booking.slot}, exclude=booking.pk, require_slot=False)
         booking.status = target
         booking.save(update_fields=['status', 'updated_at'])
         recipient = booking.customer if is_pro else booking.professional.user
         Notification.objects.create(user=recipient, message=f'Booking #{booking.id} is {target}.')
         return Response(self.get_serializer(booking).data)
+
+    @action(detail=True, methods=['get', 'post'])
+    def messages(self, request, pk=None):
+        from .conversations import messages_for
+        return messages_for(self, request, 'booking')
+
+    @action(detail=True, methods=['post'], url_path='messages/read')
+    def read_messages(self, request, pk=None):
+        from .conversations import read_messages
+        return read_messages(self, request, 'booking')
 
 
 class QuoteViewSet(viewsets.GenericViewSet, generics.ListAPIView, generics.CreateAPIView, generics.RetrieveAPIView):
@@ -196,17 +216,64 @@ class QuoteViewSet(viewsets.GenericViewSet, generics.ListAPIView, generics.Creat
     @action(detail=True, methods=['post'])
     @transaction.atomic
     def reply(self, request, pk=None):
-        quote = self.get_object()
+        initial = self.get_object()
+        Professional.objects.select_for_update().get(pk=initial.professional_id)
+        quote = self.get_queryset().select_for_update().get(pk=initial.pk)
         if quote.professional.user_id != request.user.id:
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied('Only the requested professional can reply.')
+        if Booking.objects.filter(quote=quote).exists():
+            raise serializers.ValidationError('This estimate has already been accepted and cannot be changed.')
         data = QuoteReplySerializer(data=request.data)
         data.is_valid(raise_exception=True)
         quote.amount = data.validated_data['amount']
         quote.response = data.validated_data['response']
-        quote.save(update_fields=['amount', 'response'])
+        quote.revision += 1
+        quote.save(update_fields=['amount', 'response', 'revision'])
         Notification.objects.create(user=quote.customer, message=f'Quotation #{quote.id}: BDT {quote.amount}.')
         return Response(self.get_serializer(quote).data)
+
+    @action(detail=True, methods=['post'])
+    @transaction.atomic
+    def accept(self, request, pk=None):
+        from .scheduling import reserve_booking
+        initial = self.get_object()
+        Professional.objects.select_for_update().get(pk=initial.professional_id)
+        quote = self.get_queryset().select_for_update().get(pk=initial.pk)
+        if quote.customer_id != request.user.pk:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('Only the requesting customer can accept this estimate.')
+        existing = Booking.objects.filter(quote=quote).first()
+        if existing:
+            return Response(BookingSerializer(existing, context={'request': request}).data)
+        if quote.amount is None:
+            raise serializers.ValidationError('Wait for the professional’s estimate first.')
+        class RevisionInput(serializers.Serializer):
+            quote_revision = serializers.IntegerField(min_value=0)
+        revision = RevisionInput(data=request.data)
+        revision.is_valid(raise_exception=True)
+        if revision.validated_data['quote_revision'] != quote.revision:
+            raise serializers.ValidationError('This estimate changed. Refresh it before accepting.')
+        payload = {k: request.data.get(k) for k in ['scheduled_at', 'address']}
+        payload.update(professional=quote.professional_id, category=quote.category_id,
+            area=quote.area_id, details=quote.details,
+            duration_minutes=request.data.get('duration_minutes', 60), slot=request.data.get('slot'))
+        data = BookingSerializer(data=payload, context={'request': request})
+        data.is_valid(raise_exception=True)
+        booking = reserve_booking(data, request.user, quote=quote, agreed_price=quote.amount, agreed_terms=quote.response)
+        Notification.objects.create(user=quote.professional.user,
+            message=f'Quotation #{quote.pk} accepted: booking #{booking.pk}, BDT {quote.amount}.')
+        return Response(BookingSerializer(booking, context={'request': request}).data, status=201)
+
+    @action(detail=True, methods=['get', 'post'])
+    def messages(self, request, pk=None):
+        from .conversations import messages_for
+        return messages_for(self, request, 'quote')
+
+    @action(detail=True, methods=['post'], url_path='messages/read')
+    def read_messages(self, request, pk=None):
+        from .conversations import read_messages
+        return read_messages(self, request, 'quote')
 
 
 class ReviewView(generics.CreateAPIView):
@@ -233,6 +300,19 @@ class PromotionViewSet(viewsets.GenericViewSet, generics.ListAPIView, generics.C
         if settings.DEMO_PAYMENTS:
             from .services import activate_promotion
             activate_promotion(promotion.pk)
+
+    @action(detail=True, methods=['get', 'post'])
+    def payment(self, request, pk=None):
+        from .payments import checkout, refresh_payment, PaymentSerializer
+        promotion = self.get_object()
+        if request.method == 'POST':
+            payment = checkout(promotion.pk, request.user)
+        else:
+            payment = promotion.payments.order_by('-id').first()
+            if not payment:
+                return Response({'detail': 'No payment attempt yet.'}, status=404)
+            payment = refresh_payment(payment)
+        return Response(PaymentSerializer(payment).data)
 
 
 class NotificationViewSet(viewsets.GenericViewSet, generics.ListAPIView):
@@ -283,7 +363,9 @@ def analytics(request):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def health(request):
-    return Response({'status': 'ok', 'service': 'SkillConnect', 'demo_payments': settings.DEMO_PAYMENTS})
+    from .payments import payment_enabled
+    return Response({'status': 'ok', 'service': 'SkillConnect', 'demo_payments': settings.DEMO_PAYMENTS,
+        'online_payments': payment_enabled(), 'payment_sandbox': settings.SSLCOMMERZ_SANDBOX})
 
 
 @api_view(['POST', 'DELETE'])

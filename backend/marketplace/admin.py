@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import (User, Category, Area, Professional, Portfolio, Booking, Quote,
-                     Review, PromotionPackage, Promotion, Notification, Report)
+                     Review, PromotionPackage, Promotion, Notification, Report, AvailabilitySlot, Payment)
 from .services import activate_promotion
 
 admin.site.site_header = 'SkillConnect · Marketplace administration'
@@ -11,9 +11,9 @@ admin.site.index_title = 'Trust, services and growth'
 
 @admin.register(User)
 class MarketplaceUserAdmin(UserAdmin):
-    fieldsets = UserAdmin.fieldsets + (('Marketplace', {'fields': ('role', 'phone')}),)
+    fieldsets = UserAdmin.fieldsets + (('Marketplace', {'fields': ('role', 'phone', 'email_verified')}),)
     add_fieldsets = UserAdmin.add_fieldsets + (('Marketplace', {'fields': ('email', 'role', 'phone')}),)
-    list_display = ['username', 'email', 'role', 'is_active', 'is_staff']
+    list_display = ['username', 'email', 'email_verified', 'role', 'is_active', 'is_staff']
     list_filter = UserAdmin.list_filter + ('role',)
 
 
@@ -55,7 +55,7 @@ class AreaAdmin(admin.ModelAdmin):
 class BookingAdmin(admin.ModelAdmin):
     list_display = ['id', 'customer', 'professional', 'category', 'area', 'status', 'scheduled_at']
     list_filter = ['status', 'category', 'area']
-    readonly_fields = ['customer', 'professional', 'category', 'area', 'status', 'scheduled_at', 'address', 'details', 'created_at', 'updated_at']
+    readonly_fields = ['customer', 'professional', 'category', 'area', 'status', 'scheduled_at', 'duration_minutes', 'slot', 'quote', 'agreed_price', 'agreed_terms', 'address', 'details', 'created_at', 'updated_at']
 
     def has_add_permission(self, request):
         return False
@@ -132,3 +132,28 @@ class ReportAdmin(admin.ModelAdmin):
 class NotificationAdmin(admin.ModelAdmin):
     list_display = ['user', 'message', 'read', 'created_at']
     readonly_fields = ['user', 'message', 'read', 'created_at']
+
+
+@admin.register(AvailabilitySlot)
+class AvailabilitySlotAdmin(admin.ModelAdmin):
+    list_display = ['professional', 'starts_at', 'ends_at']
+    readonly_fields = ['professional', 'starts_at', 'ends_at']
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    list_display = ['transaction_id', 'promotion', 'amount', 'status', 'sandbox', 'created_at']
+    list_filter = ['status', 'sandbox']
+    readonly_fields = ['promotion', 'transaction_id', 'amount', 'status', 'gateway_url', 'session_key', 'validation_id', 'sandbox', 'created_at']
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

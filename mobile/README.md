@@ -1,17 +1,27 @@
-# mobile
+# SkillConnect mobile app
 
-A new Flutter project.
+Flutter client for Android, iOS and web. Uses the Django API in `../backend`.
 
-## Getting Started
+From the repository root, follow the [development setup guide](../docs/sprint-1/SETUP.md)
+or [main README](../README.md), start the backend, then:
 
-This project is a starting point for a Flutter application.
+```sh
+cd mobile
+flutter pub get
+flutter run -d chrome --web-port=8080 --dart-define=ALLOW_HTTP=true
+```
 
-A few resources to get you started if this is your first Flutter project:
+For an Android emulator, use `API_URL=http://10.0.2.2:8000/api/` as a Dart define.
+The server connection action in the app tests and saves a different backend.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+Main entry: `lib/main.dart`; API/authentication: `lib/api.dart`; shared theme and
+widgets: `lib/ui.dart`; feature screens: `lib/screens/`.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```sh
+flutter analyze
+flutter test
+```
+
+The [Sprint 1 design prototype](../docs/sprint-1/prototype/index.html) is a separate,
+offline review artifact. Run `make prototype` from the repository root to inspect
+it in a phone frame. The production interface is the Flutter code in this folder.
