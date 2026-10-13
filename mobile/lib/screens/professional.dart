@@ -42,6 +42,11 @@ class BusinessScreen extends StatelessWidget {
                   'Make your skills easier to find.',
                   style: TextStyle(color: Colors.white),
                 ),
+                const Gap(),
+                Text(
+                  'Services: ${(p['categories'] as List).map((c) => c['name']).join(', ')}\nAreas: ${(p['areas'] as List).map((a) => '${a['name']}, ${a['city'] ?? 'Dhaka'}').join(' · ')}',
+                  style: const TextStyle(color: Colors.white),
+                ),
               ],
             ),
           ),
@@ -101,9 +106,37 @@ class BusinessScreen extends StatelessWidget {
           if ((p['categories'] as List).isEmpty ||
               (p['areas'] as List).isEmpty) ...[
             const Gap(),
-            const Tag(
-              'Add your services and areas to start receiving requests.',
-              color: blue,
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Finish your business setup',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const Gap(8),
+                    const Text(
+                      'Choose at least one service and area. Your business will appear in customer search after these are saved.',
+                    ),
+                    const Gap(),
+                    FilledButton(
+                      onPressed: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                EditProfileScreen(api: api, profile: p),
+                          ),
+                        );
+                        reload();
+                      },
+                      child: const Text('Choose services and areas'),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
           const Gap(24),
@@ -124,7 +157,7 @@ class BusinessScreen extends StatelessWidget {
                   ),
                   const Gap(8),
                   const Text(
-                    'Promote a specific service in a specific area. Packages start at BDT 100 for one day.',
+                    'Promote a specific service in a specific area. See available packages and current prices before requesting a purchase.',
                   ),
                   const Gap(),
                   FilledButton(
@@ -170,6 +203,18 @@ class BusinessScreen extends StatelessWidget {
               child: ListTile(
                 title: Text(work['title']),
                 subtitle: Text(work['description']),
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AddPortfolioScreen(
+                        api: api,
+                        project: Map<String, dynamic>.from(work),
+                      ),
+                    ),
+                  );
+                  reload();
+                },
                 leading: work['image'] == null || work['image'] == ''
                     ? const Icon(Icons.work_outline)
                     : PortfolioImage(
@@ -357,11 +402,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       labelText: 'Starting price (BDT)',
                     ),
                     validator: (v) =>
-                        num.tryParse(v ?? '') != null && num.parse(v!) >= 0
+                        num.tryParse(v ?? '') != null &&
+                            num.parse(v!).isFinite &&
+                            num.parse(v) >= 0
                         ? null
                         : 'Enter a valid price.',
                   ),
-                  const SectionTitle('Services you offer'),
+                  SectionTitle(
+                    'Services you offer',
+                    subtitle:
+                        '${categoryIds.length} selected · choose all services you provide.',
+                  ),
+                  if (snapshot.data![0].isEmpty)
+                    const Text(
+                      'No services are configured yet. Refresh the list or ask the administrator to add your service.',
+                    ),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -379,14 +434,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                     ],
                   ),
-                  const SectionTitle('Areas you serve'),
+                  SectionTitle(
+                    'Areas you serve',
+                    subtitle:
+                        '${areaIds.length} selected · customers can request work in these areas.',
+                  ),
+                  if (snapshot.data![1].isEmpty)
+                    const Text(
+                      'No areas are configured yet. Refresh the list or ask the administrator to add your area.',
+                    ),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
                       for (final a in snapshot.data![1])
                         FilterChip(
-                          label: Text(a['name']),
+                          label: Text('${a['name']}, ${a['city'] ?? 'Dhaka'}'),
                           selected: areaIds.contains(a['id']),
                           onSelected: (v) => setState(() {
                             v ? areaIds.add(a['id']) : areaIds.remove(a['id']);
@@ -397,6 +460,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   const SectionTitle(
                     'Business location',
                     subtitle: 'Optional coordinates for map visibility and distance filters.',
+                  ),
+                  TextButton.icon(
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Refresh services and areas'),
+                    onPressed: () => setState(
+                      () => catalogs = Future.wait([
+                        widget.api.list('categories/'),
+                        widget.api.list('areas/'),
+                      ]),
+                    ),
                   ),
                   TextFormField(
                     controller: fields['latitude'],
@@ -475,7 +548,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
 class AddPortfolioScreen extends StatefulWidget {
   final Api api;
-  const AddPortfolioScreen({super.key, required this.api});
+  final Json? project;
+  const AddPortfolioScreen({super.key, required this.api, this.project});
   @override
   State<AddPortfolioScreen> createState() => _AddPortfolioScreenState();
 }
@@ -483,6 +557,13 @@ class AddPortfolioScreen extends StatefulWidget {
 class _AddPortfolioScreenState extends State<AddPortfolioScreen> {
   final title = TextEditingController();
   final description = TextEditingController();
+  @override
+  void initState() {
+    super.initState();
+    title.text = widget.project?['title'] ?? '';
+    description.text = widget.project?['description'] ?? '';
+  }
+
   final form = GlobalKey<FormState>();
   XFile? image;
   @override
@@ -494,7 +575,13 @@ class _AddPortfolioScreenState extends State<AddPortfolioScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Add portfolio project')),
+    appBar: AppBar(
+      title: Text(
+        widget.project == null
+            ? 'Add portfolio project'
+            : 'Edit portfolio project',
+      ),
+    ),
     body: PageBody(
       width: 640,
       children: [
@@ -559,7 +646,9 @@ class _AddPortfolioScreenState extends State<AddPortfolioScreen> {
                 ),
               const Gap(24),
               ActionButton(
-                label: 'Add project',
+                label: widget.project == null
+                    ? 'Add project'
+                    : 'Save project changes',
                 action: () async {
                   if (!form.currentState!.validate()) return;
                   await widget.api.uploadPortfolio(
@@ -569,9 +658,15 @@ class _AddPortfolioScreenState extends State<AddPortfolioScreen> {
                     },
                     bytes: await image?.readAsBytes(),
                     filename: image?.name,
+                    projectId: widget.project?['id'],
                   );
                   if (context.mounted) {
-                    showMessage(context, 'Project added.');
+                    showMessage(
+                      context,
+                      widget.project == null
+                          ? 'Project added.'
+                          : 'Project updated.',
+                    );
                     Navigator.pop(context);
                   }
                 },

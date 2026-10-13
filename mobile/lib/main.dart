@@ -89,6 +89,7 @@ class _HomeShellState extends State<HomeShell> {
   @override
   void initState() {
     super.initState();
+    if (widget.api.isProfessional && !widget.api.demoMode) selected = 2;
     foreground = widget.api.push.foregroundMessages.stream.listen((message) {
       if (mounted) showMessage(context, message);
     });

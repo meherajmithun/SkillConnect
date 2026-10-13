@@ -709,6 +709,16 @@ class DemoStore {
     if (kind == 'portfolio') {
       final pro = ownProfile(),
           portfolio = (ownProfile()['portfolio'] as List).cast<Json>();
+      if (method == 'PATCH' || method == 'PUT') {
+        final row = portfolio
+            .where((p) => '${p['id']}' == parts[1])
+            .firstOrNull;
+        if (row == null) throw ApiException('Project not found.', 404);
+        for (final key in ['title', 'description', 'image']) {
+          if (body.containsKey(key)) row[key] = body[key];
+        }
+        return row;
+      }
       if (method == 'DELETE') {
         portfolio.removeWhere((p) => '${p['id']}' == parts[1]);
         return null;

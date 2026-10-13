@@ -313,17 +313,23 @@ class Api extends ChangeNotifier {
     Json fields, {
     Uint8List? bytes,
     String? filename,
+    int? projectId,
   }) async {
     if (demoMode) {
-      return post('portfolio/', {
+      final fieldsWithImage = {
         ...fields,
-        'image': bytes == null
-            ? null
-            : 'data:image/jpeg;base64,${base64Encode(bytes)}',
-      });
+        if (bytes != null)
+          'image': 'data:image/jpeg;base64,${base64Encode(bytes)}',
+      };
+      return projectId == null
+          ? post('portfolio/', fieldsWithImage)
+          : patch('portfolio/$projectId/', fieldsWithImage);
     }
     if (_refresh != null) await refreshSession();
-    final req = http.MultipartRequest('POST', uri('portfolio/'));
+    final req = http.MultipartRequest(
+      projectId == null ? 'POST' : 'PATCH',
+      uri(projectId == null ? 'portfolio/' : 'portfolio/$projectId/'),
+    );
     req.headers['Authorization'] = 'Bearer $_access';
     req.fields.addAll(fields.map((k, v) => MapEntry(k, '$v')));
     if (bytes != null) {
