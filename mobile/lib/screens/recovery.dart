@@ -58,7 +58,11 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
               : widget.verification
               ? 'Confirm your email address'
               : 'Recover your account',
-          subtitle: sent
+          subtitle: widget.api.demoMode
+              ? sent
+                    ? 'Demo code: 12345678. No email is sent.'
+                    : 'Simulate email verification with a local demo code.'
+              : sent
               ? 'Enter the eight-digit code within 15 minutes.'
               : 'We’ll send a code to your email address.',
         ),

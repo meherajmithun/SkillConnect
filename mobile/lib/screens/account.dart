@@ -61,6 +61,12 @@ class _AuthScreenState extends State<AuthScreen> {
               : 'Sign in to book a professional or manage your business.',
         ),
         const Gap(28),
+        if (widget.api.demoMode) ...[
+          const Text(
+            'Offline demo accounts: demo_customer or demo_pro\nPassword: Demo1234!\nUse sample details when creating a local demo account.',
+          ),
+          const Gap(),
+        ],
         Form(
           key: form,
           child: Column(
@@ -306,12 +312,28 @@ class AccountScreen extends StatelessWidget {
         ),
         ListTile(
           leading: const Icon(Icons.notifications_active_outlined),
-          title: const Text('Enable device notifications'),
-          subtitle: const Text(
-            'Get booking updates even when the app is closed.',
+          title: Text(
+            api.demoMode
+                ? 'Try a demo notification'
+                : 'Enable device notifications',
+          ),
+          subtitle: Text(
+            api.demoMode
+                ? 'Adds a sample update to your local Notifications.'
+                : 'Get booking updates even when the app is closed.',
           ),
           onTap: () async {
             try {
+              if (api.demoMode) {
+                await api.post('demo/notification/', {});
+                if (context.mounted) {
+                  showMessage(
+                    context,
+                    'Demo update added. Open Notifications to view it.',
+                  );
+                }
+                return;
+              }
               await api.push.enableForUser();
               if (context.mounted) {
                 showMessage(context, 'Device notifications enabled.');

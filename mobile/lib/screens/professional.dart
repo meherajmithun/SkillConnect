@@ -172,7 +172,7 @@ class BusinessScreen extends StatelessWidget {
                 subtitle: Text(work['description']),
                 leading: work['image'] == null || work['image'] == ''
                     ? const Icon(Icons.work_outline)
-                    : Image.network(
+                    : PortfolioImage(
                         work['image'],
                         width: 52,
                         height: 52,

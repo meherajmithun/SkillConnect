@@ -42,11 +42,13 @@ class PushService {
   bool pendingOpen = false;
   String? configurationError;
   String? _token;
+  bool _initialized = false;
   PushService(this.api);
   static const enabled = bool.fromEnvironment('FIREBASE_ENABLED');
 
   Future<void> initialize() async {
-    if (!enabled || kIsWeb) return;
+    if (_initialized || !enabled || kIsWeb || api.demoMode) return;
+    _initialized = true;
     try {
       await Firebase.initializeApp(options: pushOptions());
       FirebaseMessaging.onBackgroundMessage(backgroundMessage);
@@ -57,11 +59,14 @@ class PushService {
             sound: true,
           );
       _foreground = FirebaseMessaging.onMessage.listen((message) {
-        if (api.signedIn && message.notification?.body != null) {
+        if (!api.demoMode &&
+            api.signedIn &&
+            message.notification?.body != null) {
           foregroundMessages.add(message.notification!.body!);
         }
       });
       _opened = FirebaseMessaging.onMessageOpenedApp.listen((message) {
+        if (api.demoMode) return;
         pendingOpen = true;
         openedNotifications.add(null);
       });
@@ -71,7 +76,8 @@ class PushService {
         token,
       ) async {
         _token = token;
-        if (api.signedIn &&
+        if (!api.demoMode &&
+            api.signedIn &&
             await api.storage.read(key: 'push_enabled') == 'true') {
           try {
             await api.post('devices/', {'token': token});
@@ -87,6 +93,7 @@ class PushService {
   }
 
   Future<void> restoreForUser() async {
+    if (api.demoMode) return;
     if (!enabled || kIsWeb || Firebase.apps.isEmpty || !api.signedIn) return;
     if (await api.storage.read(key: 'push_enabled') != 'true') return;
     try {
@@ -106,6 +113,11 @@ class PushService {
   }
 
   Future<void> enableForUser() async {
+    if (api.demoMode) {
+      throw ApiException(
+        'Offline demo uses local in-app notifications. No push is sent.',
+      );
+    }
     if (!enabled || kIsWeb || Firebase.apps.isEmpty) {
       throw ApiException(
         configurationError ?? 'Push notifications are not configured for this build. Updates are available in Notifications.',
@@ -135,6 +147,7 @@ class PushService {
   }
 
   Future<void> unregister() async {
+    if (api.demoMode) return;
     if (_token != null && api.signedIn) {
       await api.request('DELETE', 'devices/', body: {'token': _token});
     }

@@ -10,6 +10,8 @@ import 'screens/account.dart';
 import 'screens/professional.dart';
 import 'screens/server.dart';
 
+final skillConnectNavigator = GlobalKey<NavigatorState>();
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   final api = Api();
@@ -23,12 +25,73 @@ class SkillConnectApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
     title: 'SkillConnect',
+    navigatorKey: skillConnectNavigator,
     debugShowCheckedModeBanner: false,
     theme: appTheme(),
+    builder: (context, child) => AnimatedBuilder(
+      animation: api,
+      builder: (context, _) => !api.demoMode
+          ? child!
+          : Column(
+              children: [
+                Material(
+                  color: ink,
+                  child: SafeArea(
+                    bottom: false,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      child: Row(
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'Offline demo',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: () async {
+                              skillConnectNavigator.currentState?.popUntil(
+                                (route) => route.isFirst,
+                              );
+                              await api.switchDemoRole(
+                                api.isProfessional
+                                    ? 'customer'
+                                    : 'professional',
+                              );
+                            },
+                            child: Text(
+                              api.isProfessional
+                                  ? 'Try customer'
+                                  : 'Try professional',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(child: child!),
+              ],
+            ),
+    ),
     home: AnimatedBuilder(
       animation: api,
       builder: (context, _) => api.ready
-          ? HomeShell(key: ValueKey(api.serverUrl), api: api)
+          ? HomeShell(
+              key: ValueKey(
+                '${api.serverUrl}:${api.demoMode}:${api.demoGeneration}:${api.user?['id']}',
+              ),
+              api: api,
+            )
           : const Scaffold(body: Center(child: CircularProgressIndicator())),
     ),
   );

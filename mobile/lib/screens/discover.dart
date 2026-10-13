@@ -184,6 +184,11 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                         icon: const Icon(Icons.refresh),
                         label: const Text('Try again'),
                       ),
+                      TextButton.icon(
+                        onPressed: widget.api.startDemo,
+                        icon: const Icon(Icons.touch_app_outlined),
+                        label: const Text('Explore offline demo'),
+                      ),
                     ],
                   ),
                 ),
@@ -464,7 +469,11 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                         height: 360,
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(20),
-                          child: ProfessionalMap(profiles: rows, onTap: open),
+                          child: ProfessionalMap(
+                            profiles: rows,
+                            onTap: open,
+                            offline: widget.api.demoMode,
+                          ),
                         ),
                       ),
                       const Gap(),
@@ -568,10 +577,12 @@ class _ConnectionTile extends StatelessWidget {
 class ProfessionalMap extends StatelessWidget {
   final List<Json> profiles;
   final void Function(Json) onTap;
+  final bool offline;
   const ProfessionalMap({
     super.key,
     required this.profiles,
     required this.onTap,
+    this.offline = false,
   });
   @override
   Widget build(BuildContext context) {
@@ -593,10 +604,19 @@ class ProfessionalMap extends StatelessWidget {
         initialZoom: 12,
       ),
       children: [
-        TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'com.skillconnect.mobile',
-        ),
+        if (offline)
+          GridPaper(
+            color: blue.withValues(alpha: .12),
+            interval: 80,
+            divisions: 1,
+            subdivisions: 1,
+            child: const ColoredBox(color: mist, child: SizedBox.expand()),
+          ),
+        if (!offline)
+          TileLayer(
+            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+            userAgentPackageName: 'com.skillconnect.mobile',
+          ),
         MarkerLayer(
           markers: [
             for (final p in located)
@@ -618,10 +638,14 @@ class ProfessionalMap extends StatelessWidget {
         RichAttributionWidget(
           attributions: [
             TextSourceAttribution(
-              'OpenStreetMap contributors',
-              onTap: () => launchUrl(
-                Uri.parse('https://www.openstreetmap.org/copyright'),
-              ),
+              offline
+                  ? 'Demo locations (offline)'
+                  : 'OpenStreetMap contributors',
+              onTap: offline
+                  ? null
+                  : () => launchUrl(
+                      Uri.parse('https://www.openstreetmap.org/copyright'),
+                    ),
             ),
           ],
         ),
@@ -764,6 +788,13 @@ class ProfileScreen extends StatelessWidget {
                   onPressed: '${p['phone']}'.isEmpty
                       ? null
                       : () async {
+                          if (api.demoMode) {
+                            showMessage(
+                              context,
+                              'Demo contact for ${p['business_name']}. No phone call is placed.',
+                            );
+                            return;
+                          }
                           final phone = Uri(scheme: 'tel', path: p['phone']);
                           if (!await launchUrl(phone) && context.mounted) {
                             showMessage(context, 'Call ${p['phone']}');
@@ -811,7 +842,7 @@ class ProfileScreen extends StatelessWidget {
                       if (work['image'] != null && work['image'] != '') ...[
                         ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          child: Image.network(
+                          child: PortfolioImage(
                             work['image'],
                             height: 200,
                             width: double.infinity,
@@ -842,7 +873,11 @@ class ProfileScreen extends StatelessWidget {
                 height: 250,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(20),
-                  child: ProfessionalMap(profiles: [p], onTap: (_) {}),
+                  child: ProfessionalMap(
+                    profiles: [p],
+                    onTap: (_) {},
+                    offline: api.demoMode,
+                  ),
                 ),
               ),
             ],

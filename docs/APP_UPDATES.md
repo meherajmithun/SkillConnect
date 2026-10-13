@@ -1,4 +1,24 @@
-# App updates · version 1.1.2
+# App updates · version 1.2.0
+
+## Interactive offline demonstration
+
+Version 1.2.0, build 6, adds a separate offline demo store. Install
+`dist/SkillConnect-demo-v1.2.0.apk` for faculty review: it starts as a demo
+customer, with six professionals, sample reviews, requests and appointments.
+Use **Try professional** / **Try customer** to explore both sides of a request.
+Search, comparison, quotations, bookings, messages, reviews, profiles, portfolio
+photos, calendars, reports, local accounts and simulated promotions save changes
+on the device. Local demo data and live credentials are stored separately.
+
+Email uses displayed demo code `12345678`. Demo contact buttons do not dial;
+promotions charge no money, and notifications remain local. The offline map
+shows interactive sample pins on a grid without requesting online tiles.
+These simulations do not activate live payments, email or push.
+
+The link icon provides **Start offline demo**, **Reset demo data**, and
+**Exit demo and use live server**. A successful live server connection also
+exits demo mode. Regular builds retain live mode by default; the demo APK uses
+`--dart-define=DEMO_MODE=true`. See the [faculty walkthrough](FACULTY_DEMO.md).
 
 ## View the layout without a server
 

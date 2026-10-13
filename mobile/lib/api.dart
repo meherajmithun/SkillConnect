@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 import 'push.dart';
+import 'demo.dart';
 
 typedef Json = Map<String, dynamic>;
 
@@ -31,6 +32,9 @@ class Api extends ChangeNotifier {
   Json? user;
   bool ready = false;
   String? startupError;
+  bool demoMode = false;
+  int demoGeneration = 0;
+  DemoStore? _demo;
   bool get signedIn => user != null;
   bool get isProfessional => user?['role'] == 'professional';
 
@@ -44,8 +48,14 @@ class Api extends ChangeNotifier {
 
   Future<void> initialize() async {
     try {
-      await push.initialize();
       serverUrl = await storage.read(key: 'server_url') ?? baseUrl;
+      final savedDemo = await storage.read(key: 'demo_enabled');
+      if (savedDemo == 'true' ||
+          savedDemo == null && const bool.fromEnvironment('DEMO_MODE')) {
+        await startDemo();
+        return;
+      }
+      await push.initialize();
       _access = await storage.read(key: 'access');
       _refresh = await storage.read(key: 'refresh');
       if (_access != null) {
@@ -117,6 +127,22 @@ class Api extends ChangeNotifier {
     Json? query,
     bool retry = true,
   }) async {
+    if (demoMode) {
+      try {
+        final result = _demo!.handle(method, path, body: body, query: query);
+        if (user != null && _demo!.userId == null) {
+          user = null;
+          notifyListeners();
+        }
+        return result;
+      } finally {
+        // Attempts and read receipts also change local state.
+        await storage.write(
+          key: 'demo_state_v1',
+          value: jsonEncode(_demo!.state),
+        );
+      }
+    }
     final req = http.Request(method, uri(path, query));
     req.headers['Content-Type'] = 'application/json';
     if (_access != null) req.headers['Authorization'] = 'Bearer $_access';
@@ -158,6 +184,14 @@ class Api extends ChangeNotifier {
   }
 
   Future<void> login(String username, String password) async {
+    if (demoMode) {
+      user = await post('auth/login/', {
+        'username': username,
+        'password': password,
+      });
+      notifyListeners();
+      return;
+    }
     final data = await post('auth/login/', {
       'username': username,
       'password': password,
@@ -214,6 +248,7 @@ class Api extends ChangeNotifier {
         'Could not connect. Check the address and make sure the server is running.',
       );
     }
+    if (demoMode) await stopDemo();
     await push.unregister();
     await clearSession();
     serverUrl = url;
@@ -223,6 +258,16 @@ class Api extends ChangeNotifier {
   }
 
   Future<void> clearSession() async {
+    if (demoMode) {
+      _demo!.userId = null;
+      user = null;
+      await storage.write(
+        key: 'demo_state_v1',
+        value: jsonEncode(_demo!.state),
+      );
+      notifyListeners();
+      return;
+    }
     _access = null;
     _refresh = null;
     user = null;
@@ -232,6 +277,7 @@ class Api extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    if (demoMode) return clearSession();
     try {
       await push.unregister();
       if (_refresh != null) await post('auth/logout/', {'refresh': _refresh});
@@ -245,6 +291,14 @@ class Api extends ChangeNotifier {
     Uint8List? bytes,
     String? filename,
   }) async {
+    if (demoMode) {
+      return post('portfolio/', {
+        ...fields,
+        'image': bytes == null
+            ? null
+            : 'data:image/jpeg;base64,${base64Encode(bytes)}',
+      });
+    }
     if (_refresh != null) await refreshSession();
     final req = http.MultipartRequest('POST', uri('portfolio/'));
     req.headers['Authorization'] = 'Bearer $_access';
@@ -267,5 +321,48 @@ class Api extends ChangeNotifier {
         'Portfolio upload failed. Check your connection and try again.',
       );
     }
+  }
+
+  Future<void> startDemo() async {
+    if (demoMode) return;
+    final saved = await storage.read(key: 'demo_state_v1');
+    _demo = saved == null
+        ? DemoStore.fresh()
+        : DemoStore(Map<String, dynamic>.from(jsonDecode(saved)));
+    demoMode = true;
+    demoGeneration++;
+    user = _demo!.userId == null ? null : _demo!.publicUser(_demo!.account());
+    startupError = null;
+    await storage.write(key: 'demo_enabled', value: 'true');
+    await storage.write(key: 'demo_state_v1', value: jsonEncode(_demo!.state));
+    notifyListeners();
+  }
+
+  Future<void> switchDemoRole(String role) async {
+    if (!demoMode) return;
+    _demo!.userId = role == 'professional' ? 2 : 1;
+    demoGeneration++;
+    user = _demo!.publicUser(_demo!.account());
+    await storage.write(key: 'demo_state_v1', value: jsonEncode(_demo!.state));
+    notifyListeners();
+  }
+
+  Future<void> resetDemo() async {
+    if (!demoMode) return;
+    _demo = DemoStore.fresh();
+    demoGeneration++;
+    user = _demo!.publicUser(_demo!.account());
+    await storage.write(key: 'demo_state_v1', value: jsonEncode(_demo!.state));
+    notifyListeners();
+  }
+
+  Future<void> stopDemo() async {
+    demoMode = false;
+    user = null;
+    _access = null;
+    _refresh = null;
+    await storage.write(key: 'demo_enabled', value: 'false');
+    await push.initialize();
+    notifyListeners();
   }
 }

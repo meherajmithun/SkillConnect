@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 
 import 'api.dart';
@@ -7,6 +9,40 @@ const blue = Color(0xFF2358D5);
 const mist = Color(0xFFF1F5FB);
 const teal = Color(0xFF0A786E);
 const coral = Color(0xFFE97759);
+
+class PortfolioImage extends StatelessWidget {
+  final String source;
+  final double? width, height;
+  final BoxFit fit;
+  final ImageErrorWidgetBuilder? errorBuilder;
+  const PortfolioImage(
+    this.source, {
+    super.key,
+    this.width,
+    this.height,
+    this.fit = BoxFit.cover,
+    this.errorBuilder,
+  });
+  @override
+  Widget build(BuildContext context) {
+    if (source.startsWith('data:image/')) {
+      return Image.memory(
+        base64Decode(source.split(',').last),
+        width: width,
+        height: height,
+        fit: fit,
+        errorBuilder: errorBuilder,
+      );
+    }
+    return Image.network(
+      source,
+      width: width,
+      height: height,
+      fit: fit,
+      errorBuilder: errorBuilder,
+    );
+  }
+}
 
 class BrandIcon extends StatelessWidget {
   final double size;
