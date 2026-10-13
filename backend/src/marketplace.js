@@ -189,6 +189,8 @@ export async function presentedRequest(db, kind, row) {
     customer_name:
       `${customer.first_name} ${customer.last_name}`.trim() ||
       customer.username,
+    customer_phone: customer.phone,
+    professional_phone: (await find(db, "users", pro.user_id)).phone,
     category: row.category_id,
     category_name: (await find(db, "categories", row.category_id)).name,
     area: row.area_id,
@@ -346,6 +348,8 @@ export function marketplaceRoutes(app, db, config, auth) {
       );
       return profiles.filter(
         (p) =>
+          p.categories.length > 0 &&
+          p.areas.length > 0 &&
           (!category || p.categories.some((c) => c.id === category)) &&
           (!area || p.areas.some((a) => a.id === area)) &&
           p.rating >= rating &&

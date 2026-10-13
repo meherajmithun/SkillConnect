@@ -247,6 +247,190 @@ test("registration hashes passwords and blocks privilege escalation", async () =
     400,
   );
 });
+test("both roles can sign in by email without losing username login", async () => {
+  for (const username of ["customer", "professional"]) {
+    const result = await request("POST", "auth/login/", {
+      username: ` ${username.toUpperCase()}@EXAMPLE.COM `,
+      password,
+    });
+    assert.equal(result.status, 200);
+    assert.equal(
+      (await request("GET", "me/", null, result.data.access)).data.username,
+      username,
+    );
+    assert.equal(
+      (
+        await request("POST", "auth/login/", {
+          email: `${username}@example.com`,
+          password,
+        })
+      ).status,
+      200,
+    );
+    assert.equal(
+      (
+        await request("POST", "auth/login/", {
+          username: `${username}@example.com`,
+          password: "WrongPassword!",
+        })
+      ).status,
+      401,
+    );
+    assert.equal(
+      (await request("POST", "auth/login/", { username, password })).status,
+      200,
+    );
+  }
+  // A username matching another user's email must not shadow their saved login.
+  await db.update("users", world.stranger.id, {
+    username: world.customer.email,
+  });
+  const canonical = await request("POST", "auth/login/", {
+    username: world.customer.email,
+    password,
+  });
+  assert.equal(
+    (await request("GET", "me/", null, canonical.data.access)).data.id,
+    world.customer.id,
+  );
+  await db.update("users", world.professional.id, { is_active: 0 });
+  assert.equal(
+    (
+      await request("POST", "auth/login/", {
+        username: "professional@example.com",
+        password,
+      })
+    ).status,
+    401,
+  );
+});
+
+test("provider onboarding publishes selected services and areas for real customer requests", async () => {
+  const created = await request("POST", "auth/register/", {
+    username: "new_provider",
+    email: "provider@example.com",
+    password,
+    first_name: "New",
+    role: "professional",
+    phone: "+8801712345678",
+  });
+  assert.equal(created.status, 201);
+  const token = (
+    await request("POST", "auth/login/", {
+      username: "provider@example.com",
+      password,
+    })
+  ).data.access;
+  const initial = (await request("GET", "profile/", null, token)).data;
+  assert.deepEqual(initial.areas, []);
+  assert.deepEqual(initial.categories, []);
+  assert.equal(
+    (await request("GET", "professionals/")).data.results.some(
+      (p) => p.id === initial.id,
+    ),
+    false,
+  );
+  const secondArea = await db.insert("areas", {
+    name: "Uttara",
+    city: "Dhaka",
+    latitude: 23.8759,
+    longitude: 90.3795,
+  });
+  const updated = await request(
+    "PATCH",
+    "profile/",
+    {
+      business_name: "New Electrical Care",
+      bio: "Local electrical repairs",
+      category_ids: [world.category.id],
+      area_ids: [world.area.id, secondArea.id],
+    },
+    token,
+  );
+  assert.equal(updated.status, 200);
+  assert.equal(updated.data.areas.length, 2);
+  const found = await request(
+    "GET",
+    `professionals/?category=${world.category.id}&area=${secondArea.id}`,
+  );
+  assert.deepEqual(
+    found.data.results.map((p) => p.id),
+    [initial.id],
+  );
+  const requestBody = {
+    ...bookingBody(),
+    professional: initial.id,
+    area: secondArea.id,
+  };
+  const reserved = await request(
+    "POST",
+    "bookings/",
+    requestBody,
+    world.customerToken,
+  );
+  assert.equal(reserved.status, 201);
+  assert.equal(reserved.data.area_name, "Uttara");
+  assert.equal(reserved.data.customer_phone, world.customer.phone);
+  assert.equal(reserved.data.professional_phone, "+8801712345678");
+  assert.equal(
+    (
+      await request(
+        "GET",
+        `bookings/${reserved.data.id}/`,
+        null,
+        world.strangerToken,
+      )
+    ).status,
+    404,
+  );
+  assert.equal(
+    (await request("POST", "quotes/", requestBody, world.customerToken)).status,
+    201,
+  );
+  await request("PATCH", "profile/", { area_ids: [world.area.id] }, token);
+  assert.equal(
+    (await request("POST", "quotes/", requestBody, world.customerToken)).status,
+    400,
+  );
+  assert.equal(
+    (await request("GET", `professionals/?area=${secondArea.id}`)).data.count,
+    0,
+  );
+});
+
+test("portfolio edits preserve photos and reject other users", async () => {
+  const work = await db.insert("portfolio", {
+    professional_id: world.pro.id,
+    title: "Old title",
+    description: "Old work",
+    image: "portfolio/example.jpg",
+  });
+  const edit = await request(
+    "PATCH",
+    `portfolio/${work.id}/`,
+    { title: "Updated project", description: "New description" },
+    world.proToken,
+  );
+  assert.equal(edit.status, 200);
+  assert.equal(edit.data.title, "Updated project");
+  assert.ok(edit.data.image.endsWith("/media/portfolio/example.jpg"));
+  assert.equal(
+    (
+      await request(
+        "PATCH",
+        `portfolio/${work.id}/`,
+        { title: "Foreign edit" },
+        world.customerToken,
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (await db.one("SELECT title FROM portfolio WHERE id=?", [work.id])).title,
+    "Updated project",
+  );
+});
+
 test("account updates cannot change role or staff flags", async () => {
   const r = await request(
     "PATCH",

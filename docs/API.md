@@ -1,12 +1,12 @@
 # SkillConnect API
 
-Base path: `/api/`. JSON requests and responses except portfolio image upload, which uses multipart form data. Authenticated endpoints use `Authorization: Bearer <access>`. Login uses **username**, not email. List responses are paginated as `{count, next, previous, results}` unless noted. Page size is 30; pass `page=2` for subsequent pages.
+Base path: `/api/`. JSON requests and responses except portfolio image upload, which uses multipart form data. Authenticated endpoints use `Authorization: Bearer <access>`. Login accepts **email or username** in `username`, or email in `email`. Email matching ignores case and takes precedence if a username matches someone else's email. List responses are paginated as `{count, next, previous, results}` unless noted. Page size is 30; pass `page=2` for subsequent pages.
 
 | Endpoint | Methods | Behavior |
 | --- | --- | --- |
 | `health/` | GET | Public service health and demo-payment mode |
 | `auth/register/` | POST | Username, email, password, first/last name, phone, role (`customer` / `professional`) |
-| `auth/login/` | POST | Username + password → access and refresh JWTs |
+| `auth/login/` | POST | Email or username + password → access and refresh JWTs |
 | `auth/refresh/` | POST | Refresh token → rotated tokens; old refresh is blacklisted |
 | `auth/logout/` | POST | Refresh token → blacklist; existing access expires within 30 minutes |
 | `me/` | GET, PATCH | Current account including read-only `email_verified`; changing email resets verification |
@@ -50,7 +50,7 @@ Base path: `/api/`. JSON requests and responses except portfolio image upload, w
 
 `category`, `area` (IDs), `q` (business/skills/bio search), `min_rating` (0–5), `available=true`, `lat`, `lng`, `max_distance` (km), `sort=recommended|rating|distance`, `page`.
 
-Distance requires both coordinates. Unknown business locations are excluded when a distance limit is present and appear last in nearest sorting. Only active users are discoverable. Sponsored visibility requires both a category and area filter; no promotion boost applies to unscoped browsing. A profile's approximate distance is included in search results; detail responses don't have a search origin.
+Distance requires both coordinates. Unknown business locations are excluded when a distance limit is present and appear last in nearest sorting. Only active users with at least one active service category and one service area are discoverable. Sponsored visibility requires both a category and area filter; no promotion boost applies to unscoped browsing. A profile's approximate distance is included in search results; detail responses don't have a search origin.
 
 ## Booking request
 
@@ -66,6 +66,8 @@ Distance requires both coordinates. Unknown business locations are excluded when
 ```
 
 The professional must be active, available and serve the requested service and area. The schedule must be in the future. Customers can cancel pending/accepted bookings. Professionals accept/reject pending bookings and complete accepted bookings. Terminal states cannot be reversed. Both parties receive in-app updates.
+
+Participant-only booking and quote responses include `customer_phone` and `professional_phone` for contacting the other party. These responses remain inaccessible to unrelated accounts.
 
 Quotation requests use professional, category, area and details. Replies increment the quotation revision. Accept with `quote_revision`, `scheduled_at`, `duration_minutes` (default 60), `address` and optional `slot`. The backend snapshots the quotation price and terms and returns the resulting booking. Duplicate acceptance returns the same booking. Accepted estimates cannot be updated.
 

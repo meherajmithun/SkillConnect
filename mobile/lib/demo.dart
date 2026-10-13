@@ -651,7 +651,9 @@ class DemoStore {
       }
       var list = rows(kind).map((p) => profile(p, query: query)).where((p) {
         final text = '${query['q'] ?? ''}'.toLowerCase();
-        return (query['category'] == null ||
+        return (p['category_ids'] as List).isNotEmpty &&
+            (p['area_ids'] as List).isNotEmpty &&
+            (query['category'] == null ||
                 (p['category_ids'] as List).any(
                   (id) => '$id' == '${query['category']}',
                 )) &&
