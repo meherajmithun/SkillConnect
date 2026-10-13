@@ -249,6 +249,8 @@ void main() {
         await tester.pumpWidget(SkillConnectApp(api: api));
         await tester.pumpAndSettle();
         expect(find.text('Offline demo'), findsOneWidget);
+        expect(find.text('Try professional'), findsNothing);
+        expect(find.text('Try customer'), findsNothing);
         await tester.scrollUntilVisible(
           find.text('Rahim Electrical Works'),
           300,
@@ -270,7 +272,13 @@ void main() {
           (await api.list('quotes/')).first['details'],
           'Test clickable demo quote',
         );
-        await tester.tap(find.text('Try professional'));
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Account'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Switch demo account'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Professional'));
         await tester.pumpAndSettle();
         expect(find.text('My business'), findsOneWidget);
         await tester.tap(find.text('My business'));
@@ -281,6 +289,16 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text('Published appointments'), findsOneWidget);
         expect(tester.takeException(), isNull);
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Account'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Switch demo account'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Customer'));
+        await tester.pumpAndSettle();
+        expect(api.isProfessional, isFalse);
+        expect(find.text('My business'), findsNothing);
         await tester.pumpWidget(const SizedBox.shrink());
       },
     );

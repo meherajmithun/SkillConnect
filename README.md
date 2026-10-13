@@ -7,7 +7,7 @@ A local service marketplace built from [the project proposal](SkillConnect_2_Pag
 The version 1.1.0 update adds email recovery/verification, appointment scheduling, accepted-quotation bookings, private messaging and configurable SSLCommerz checkout. Version 1.1.2 keeps the Discover layout visible without a backend connection. See [app updates and integration setup](docs/APP_UPDATES.md).
 
 Version 1.2.0 adds an interactive offline demo for faculty review. Install
-`dist/SkillConnect-demo-v1.2.0.apk` to explore customer and professional journeys
+`dist/SkillConnect-demo-v1.2.1.apk` to explore customer and professional journeys
 with sample data saved on the phone. See the [faculty walkthrough](docs/FACULTY_DEMO.md).
 
 ## Stack

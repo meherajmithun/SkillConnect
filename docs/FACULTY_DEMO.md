@@ -1,6 +1,6 @@
-# Faculty demonstration · SkillConnect 1.2.0
+# Faculty demonstration · SkillConnect 1.2.1
 
-Install `dist/SkillConnect-demo-v1.2.0.apk` on an Android phone. This build opens
+Install `dist/SkillConnect-demo-v1.2.1.apk` on an Android phone. This build opens
 the offline demo automatically, signed in as a sample customer. No hosting,
 computer connection, internet, or registration is needed to explore the app.
 The **Offline demo** banner identifies sample data. Changes are saved on that
@@ -16,11 +16,11 @@ mode, use the link icon → **Start offline demo**.
    Return to Activity → Quotes to find it. A prefilled answered estimate is also
    available so the reviewer can immediately try accepting an estimate and
    choosing an appointment.
-3. **Professional:** tap **Try professional** in the banner. Activity → Quotes
+3. **Professional:** open **Account → Switch demo account → Professional**. Activity → Quotes
    shows the same customer's request. Send an estimate; send a message. My
    business provides profile editing, portfolio projects, calendar management,
    statistics, and simulated promotion activation.
-4. **Booking:** switch with **Try customer**, accept the estimate, choose a free
+4. **Booking:** choose **Account → Switch demo account → Customer**, accept the estimate, choose a free
    appointment and enter a sample address. Switch to the professional, open
    Activity, accept the booking, then mark it completed. Return to the customer
    and publish a review. A completed sample booking is available from the start.
@@ -29,8 +29,8 @@ mode, use the link icon → **Start offline demo**.
    code is **12345678**; no email is sent. Sign-out and local registration can
    also be demonstrated. Use sample details for local registration.
 
-The banner's role switch always returns to the main screen so a customer is
-not left inside a professional-only form. Use the link icon → **Reset demo data**
+Switching demo accounts returns to the main screen. The top bar only identifies
+offline demo mode. Use the link icon → **Reset demo data**
 to restore the original sample accounts and requests before another review.
 Reset requires confirmation. It changes only the local demonstration data.
 
@@ -61,8 +61,6 @@ real payments, external email/push delivery, or human acceptance.
 Flutter analysis passed and all 16 tests passed, including offline request
 lifecycles, persistence, live-session isolation and clickable flows at 360 px
 and 1000 px. The Android release build passed. Package `com.skillconnect.mobile`
-has version `1.2.0`, version code `6`, and the same development signing
+has version `1.2.1`, version code `7`, and the same development signing
 certificate as the previous friends APKs. Physical-device faculty acceptance
 is still to be recorded after installation.
-
-APK SHA-256: `6942e69b0c0015ef85438fb72bc0748fe1d7f50d2d76cd976d458a514b08b6db`.

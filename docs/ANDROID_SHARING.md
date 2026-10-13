@@ -2,9 +2,9 @@
 
 ## Install
 
-For faculty review without hosting, send `SkillConnect-demo-v1.2.0.apk`.
+For faculty review without hosting, send `SkillConnect-demo-v1.2.1.apk`.
 It opens the interactive offline demo automatically and preserves local changes.
-Use the banner to switch roles and the link icon to reset the sample data or
+Use Account → Switch demo account to choose a role, and the link icon to reset the sample data or
 connect to a live server. See the [faculty walkthrough](FACULTY_DEMO.md).
 
 Send `SkillConnect-friends-v1.1.2.apk` to your friends. On Android, open it and permit installation from the app used to open the file if prompted. The universal APK supports ARM64, ARMv7 and x86_64. This is a development-key-signed testing release, not a Play Store release.
@@ -46,7 +46,7 @@ The output is `mobile/build/app/outputs/flutter-apk/app-release.apk`. GitHub Act
 
 For production, use your own signing key, HTTPS hosting and an HTTPS `API_URL`. Omit `ALLOW_HTTP=true`; the production manifest rejects cleartext traffic and the connection settings reject HTTP addresses.
 
-Version 1.2.0 uses build number 6 and can update earlier friends APKs signed with the same development key. Apply backend migrations when connecting to the live backend. See [app updates](APP_UPDATES.md).
+Version 1.2.1 uses build number 7 and can update earlier friends APKs signed with the same development key. Apply backend migrations when connecting to the live backend. See [app updates](APP_UPDATES.md).
 
 To rebuild the faculty demo, add `--dart-define=DEMO_MODE=true` to the rebuild
 command above. GitHub Actions also uploads `SkillConnect-offline-demo-apk`.

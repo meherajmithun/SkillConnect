@@ -199,6 +199,63 @@ class _AuthScreenState extends State<AuthScreen> {
 String? requiredText(String? value) =>
     value == null || value.trim().isEmpty ? 'This field is required.' : null;
 
+class DemoAccountSwitch extends StatelessWidget {
+  final Api api;
+  const DemoAccountSwitch({super.key, required this.api});
+  @override
+  Widget build(BuildContext context) => ListTile(
+    contentPadding: EdgeInsets.zero,
+    leading: const Icon(Icons.switch_account_outlined),
+    title: const Text('Switch demo account'),
+    subtitle: const Text(
+      'Explore both sides of the project with sample accounts.',
+    ),
+    trailing: const Icon(Icons.chevron_right),
+    onTap: () async {
+      final role = await showDialog<String>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Choose a demo account'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.person_outline),
+                title: const Text('Customer'),
+                subtitle: const Text('Find services, book and review work.'),
+                trailing: api.user?['id'] == 1
+                    ? const Icon(Icons.check, color: teal)
+                    : null,
+                onTap: () => Navigator.pop(context, 'customer'),
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.storefront_outlined),
+                title: const Text('Professional'),
+                subtitle: const Text(
+                  'Manage a business and respond to requests.',
+                ),
+                trailing: api.user?['id'] == 2
+                    ? const Icon(Icons.check, color: teal)
+                    : null,
+                onTap: () => Navigator.pop(context, 'professional'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+          ],
+        ),
+      );
+      if (role != null) await api.switchDemoRole(role);
+    },
+  );
+}
+
 class AccountScreen extends StatelessWidget {
   final Api api;
   const AccountScreen({super.key, required this.api});
@@ -224,6 +281,7 @@ class AccountScreen extends StatelessWidget {
             onPressed: () => requireLogin(context, api),
             child: const Text('Sign in or create an account'),
           ),
+          if (api.demoMode) ...[const Gap(), DemoAccountSwitch(api: api)],
           if (api.startupError != null) ...[
             const Gap(),
             Text(api.startupError!),
@@ -235,6 +293,7 @@ class AccountScreen extends StatelessWidget {
       width: 720,
       children: [
         const SectionTitle('Your account'),
+        if (api.demoMode) ...[DemoAccountSwitch(api: api), const Gap()],
         Card(
           child: Padding(
             padding: const EdgeInsets.all(24),

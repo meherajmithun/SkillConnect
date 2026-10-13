@@ -41,40 +41,17 @@ class SkillConnectApp extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
-                        vertical: 4,
+                        vertical: 8,
                       ),
-                      child: Row(
-                        children: [
-                          const Expanded(
-                            child: Text(
-                              'Offline demo',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
+                      child: const SizedBox(
+                        width: double.infinity,
+                        child: Text(
+                          'Offline demo',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
                           ),
-                          TextButton(
-                            style: TextButton.styleFrom(
-                              foregroundColor: Colors.white,
-                            ),
-                            onPressed: () async {
-                              skillConnectNavigator.currentState?.popUntil(
-                                (route) => route.isFirst,
-                              );
-                              await api.switchDemoRole(
-                                api.isProfessional
-                                    ? 'customer'
-                                    : 'professional',
-                              );
-                            },
-                            child: Text(
-                              api.isProfessional
-                                  ? 'Try customer'
-                                  : 'Try professional',
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),

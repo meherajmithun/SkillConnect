@@ -1,11 +1,15 @@
-# App updates · version 1.2.0
+# App updates · version 1.2.1
+
+Version 1.2.1, build 7, removes the confusing role-switch buttons from the top
+bar. Use **Account → Switch demo account** to choose **Customer** or
+**Professional**. The header only indicates that offline demo mode is active.
 
 ## Interactive offline demonstration
 
 Version 1.2.0, build 6, adds a separate offline demo store. Install
-`dist/SkillConnect-demo-v1.2.0.apk` for faculty review: it starts as a demo
+`dist/SkillConnect-demo-v1.2.1.apk` for faculty review: it starts as a demo
 customer, with six professionals, sample reviews, requests and appointments.
-Use **Try professional** / **Try customer** to explore both sides of a request.
+Use **Account → Switch demo account** to explore both sides of a request.
 Search, comparison, quotations, bookings, messages, reviews, profiles, portfolio
 photos, calendars, reports, local accounts and simulated promotions save changes
 on the device. Local demo data and live credentials are stored separately.
