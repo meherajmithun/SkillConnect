@@ -42,6 +42,11 @@ class Api extends ChangeNotifier {
   bool get signedIn => user != null;
   bool get isProfessional => user?['role'] == 'professional';
 
+  // Render's free service can take about a minute to wake after inactivity.
+  static Duration _connectionTimeout(String url) => Duration(
+    seconds: Uri.parse(url).host.endsWith('.onrender.com') ? 90 : 20,
+  );
+
   Api({http.Client? client, FlutterSecureStorage? storage})
     : client = client ?? http.Client(),
       storage = storage ?? const FlutterSecureStorage();
@@ -52,7 +57,17 @@ class Api extends ChangeNotifier {
 
   Future<void> initialize() async {
     try {
-      serverUrl = await storage.read(key: 'server_url') ?? baseUrl;
+      final savedServer = await storage.read(key: 'server_url');
+      final needsHostedServer =
+          !const bool.fromEnvironment('ALLOW_HTTP') &&
+          Uri.parse(baseUrl).scheme == 'https' &&
+          Uri.tryParse(savedServer ?? '')?.scheme == 'http';
+      serverUrl = needsHostedServer ? baseUrl : savedServer ?? baseUrl;
+      if (needsHostedServer) {
+        // Retire local-server tokens before connecting to the hosted database.
+        await clearSession();
+        await storage.write(key: 'server_url', value: serverUrl);
+      }
       final savedDemo = demoAvailable
           ? await storage.read(key: 'demo_enabled')
           : 'false';
@@ -115,7 +130,7 @@ class Api extends ChangeNotifier {
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({'refresh': _refresh}),
           )
-          .timeout(const Duration(seconds: 20));
+          .timeout(_connectionTimeout(serverUrl));
       final data = decode(response) as Json;
       _access = data['access'];
       _refresh = data['refresh'] ?? _refresh;
@@ -156,7 +171,7 @@ class Api extends ChangeNotifier {
     http.Response response;
     try {
       response = await http.Response.fromStream(
-        await client.send(req).timeout(const Duration(seconds: 20)),
+        await client.send(req).timeout(_connectionTimeout(serverUrl)),
       );
     } catch (_) {
       throw ApiException(
@@ -242,7 +257,7 @@ class Api extends ChangeNotifier {
     try {
       final response = await client
           .get(parsed.resolve('health/'))
-          .timeout(const Duration(seconds: 12));
+          .timeout(_connectionTimeout(url));
       final data = decode(response);
       if (data is! Map || data['service'] != 'SkillConnect') {
         throw ApiException('This address is not a SkillConnect server.');

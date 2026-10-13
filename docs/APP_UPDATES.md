@@ -1,4 +1,16 @@
-# App updates · version 1.2.1
+# App updates · version 2.0.1
+
+Version 2.0.1, build 9, connects to the deployed Node.js API at
+`https://skillconnect-api-6bwr.onrender.com/api/`. Install
+`dist/SkillConnect-v2.0.1.apk` over the previous APK to use mobile data or any
+Wi-Fi without the computer staying on. Demo mode and cleartext HTTP are disabled.
+Saved HTTP server settings move to Render, and local-server tokens are cleared
+before using the new database. Explicitly saved HTTPS servers are preserved.
+Render requests allow 90 seconds for the free service to wake after inactivity.
+The new hosted database has no sample accounts or profiles; register real accounts
+and configure real service categories and areas through administration.
+
+## Earlier releases
 
 Version 1.2.1, build 7, removes the confusing role-switch buttons from the top
 bar. Use **Account → Switch demo account** to choose **Customer** or

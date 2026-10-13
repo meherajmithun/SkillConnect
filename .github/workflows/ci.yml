@@ -47,11 +47,11 @@ jobs:
       - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze
       - run: flutter test
-      - run: flutter test test/live_build_test.dart --dart-define=DEMO_AVAILABLE=false
-      - run: flutter build apk --release --dart-define=DEMO_AVAILABLE=false --dart-define=ALLOW_HTTP=true --dart-define=API_URL=http://10.0.2.2:8000/api/
+      - run: flutter test test/live_build_test.dart --dart-define=DEMO_AVAILABLE=false --dart-define=API_URL=https://skillconnect-api-6bwr.onrender.com/api/
+      - run: flutter build apk --release --dart-define=DEMO_AVAILABLE=false --dart-define=DEMO_MODE=false --dart-define=API_URL=https://skillconnect-api-6bwr.onrender.com/api/
       - uses: actions/upload-artifact@v4
         with:
-          name: SkillConnect-friends-apk
+          name: SkillConnect-live-apk
           path: mobile/build/app/outputs/flutter-apk/app-release.apk
       - run: flutter build apk --release --dart-define=DEMO_MODE=true --dart-define=ALLOW_HTTP=true --dart-define=API_URL=http://10.0.2.2:8000/api/
       - uses: actions/upload-artifact@v4

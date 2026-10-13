@@ -11,6 +11,47 @@ import 'package:mobile/screens/server.dart';
 import 'package:mobile/ui.dart';
 
 void main() {
+  test(
+    'HTTPS update migrates saved HTTP server and retires local tokens',
+    () async {
+      FlutterSecureStorage.setMockInitialValues({
+        'server_url': 'http://192.168.0.174:8000/api/',
+        'access': 'old-local-access-token',
+        'refresh': 'old-local-refresh-token',
+      });
+      final requests = <http.Request>[];
+      final api = Api(
+        client: MockClient((request) async {
+          requests.add(request);
+          return http.Response('{"status":"ok"}', 200);
+        }),
+      );
+      await api.initialize();
+      expect(api.serverUrl, Api.baseUrl);
+      expect(api.user, isNull);
+      expect(api.startupError, isNull);
+      expect(await api.storage.read(key: 'access'), isNull);
+      expect(await api.storage.read(key: 'refresh'), isNull);
+      expect(await api.storage.read(key: 'server_url'), Api.baseUrl);
+      expect(requests, isEmpty);
+      await api.get('health/');
+      expect(requests.single.url.toString(), '${Api.baseUrl}health/');
+      expect(requests.single.headers['Authorization'], isNull);
+    },
+    skip:
+        !Api.baseUrl.startsWith('https://') ||
+        const bool.fromEnvironment('ALLOW_HTTP'),
+  );
+
+  test('HTTPS update preserves an explicitly saved HTTPS server', () async {
+    const saved = 'https://custom-api.example/api/';
+    FlutterSecureStorage.setMockInitialValues({'server_url': saved});
+    final api = Api();
+    await api.initialize();
+    expect(api.serverUrl, saved);
+    expect(await api.storage.read(key: 'server_url'), saved);
+  }, skip: !Api.baseUrl.startsWith('https://'));
+
   testWidgets('Live build ignores saved demo mode and removes demo controls', (
     tester,
   ) async {

@@ -1,5 +1,12 @@
 # SkillConnect on Render
 
+The live API is [skillconnect-api-6bwr.onrender.com](https://skillconnect-api-6bwr.onrender.com/api/health/).
+Health and public catalogue requests returned HTTP 200 during deployment
+verification. The hosted catalogue is currently empty; no sample data was added.
+The phone build is `dist/SkillConnect-v2.0.1.apk`, version 2.0.1, build 9.
+It uses this HTTPS address by default and automatically replaces saved HTTP
+addresses from earlier local builds, clearing their login tokens.
+
 The root `render.yaml` deploys the JavaScript API and PostgreSQL in Singapore.
 It generates a JWT secret and supplies the private database connection. The API
 binds Render's port, migrates its schema on startup, and derives an exact host

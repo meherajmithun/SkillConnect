@@ -2,18 +2,25 @@
 
 ## Install
 
-The current live build is `dist/SkillConnect-v2.0.0.apk`, version 2.0.0,
-build 8. It connects to the Node.js backend and is built with
+The current hosted build is `dist/SkillConnect-v2.0.1.apk`, version 2.0.1,
+build 9. It connects to `https://skillconnect-api-6bwr.onrender.com/api/` and is built with
 `DEMO_AVAILABLE=false` and `DEMO_MODE=false`. Saved demo settings from earlier
 APKs are ignored, and demo controls are hidden. It loads the records currently
 stored on the backend; it does not bundle sample accounts or professionals.
+
+Install it over the previous APK. Saved HTTP server settings automatically move
+to Render and local-server login tokens are cleared. Register a new account or
+sign in to an existing hosted account; the Render database is separate from the
+computer's database. Internet is required, but the computer can stay off. The
+free server can take about a minute to wake; this build allows 90 seconds for
+Render requests. See [Render deployment](RENDER_DEPLOYMENT.md) for data and upload limits.
 
 For faculty review without hosting, send `SkillConnect-demo-v1.2.1.apk`.
 It opens the interactive offline demo automatically and preserves local changes.
 Use Account → Switch demo account to choose a role, and the link icon to reset the sample data or
 connect to a live server. See the [faculty walkthrough](FACULTY_DEMO.md).
 
-Send `SkillConnect-v2.0.0.apk` to your friends. On Android, open it and permit installation from the app used to open the file if prompted. The universal APK supports ARM64, ARMv7 and x86_64. This is a development-key-signed testing release, not a Play Store release.
+Send `SkillConnect-v2.0.1.apk` to your friends. On Android, open it and permit installation from the app used to open the file if prompted. The universal APK supports ARM64, ARMv7 and x86_64. This is a development-key-signed testing release, not a Play Store release.
 
 ## Connect on the same Wi-Fi
 
@@ -49,7 +56,7 @@ flutter build apk --release \
   --dart-define=API_URL=http://YOUR_COMPUTER_IP:8000/api/
 ```
 
-The output is `mobile/build/app/outputs/flutter-apk/app-release.apk`. GitHub Actions provides a downloadable `SkillConnect-friends-apk` artifact for repository runs. APKs are kept outside Git history to avoid adding large generated binaries.
+The output is `mobile/build/app/outputs/flutter-apk/app-release.apk`. GitHub Actions provides a downloadable `SkillConnect-live-apk` artifact for repository runs, using the hosted HTTPS backend. APKs are kept outside Git history to avoid adding large generated binaries.
 
 For production, use your own signing key, HTTPS hosting and an HTTPS `API_URL`. Omit `ALLOW_HTTP=true`; the production manifest rejects cleartext traffic and the connection settings reject HTTP addresses.
 
