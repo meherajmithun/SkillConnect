@@ -102,6 +102,13 @@ and HTTPS from a trusted reverse proxy. Store media on a persistent volume or
 object storage; the Node server serves its configured media directory.
 Back up both PostgreSQL and media. Use your own Android signing key for distribution.
 
+## Render hosting
+
+The root [Render Blueprint](render.yaml) deploys the Node.js API and PostgreSQL
+without sample accounts. See [Render deployment](docs/RENDER_DEPLOYMENT.md) for
+account connection, phone setup, database initialization and free-plan limits.
+Once hosted, the phone uses the HTTPS API without the computer staying on.
+
 ## Integrations
 
 Email codes print only in local console mode; set `EMAIL_MODE=smtp` and SMTP

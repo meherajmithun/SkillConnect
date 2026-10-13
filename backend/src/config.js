@@ -18,7 +18,9 @@ export function configuration(env = process.env) {
     throw new Error("Set JWT_SECRET to at least 32 random characters.");
   if (production && !databaseUrl && !env.POSTGRES_DB)
     throw new Error("Configure PostgreSQL for production.");
-  const hosts = list(env.ALLOWED_HOSTS);
+  // Render assigns the public hostname at deploy time; keep an exact allowlist.
+  const renderHost = env.RENDER === "true" ? env.RENDER_EXTERNAL_HOSTNAME : "";
+  const hosts = list(env.ALLOWED_HOSTS || renderHost);
   if (production && (!hosts.length || hosts.includes("*")))
     throw new Error("Set exact ALLOWED_HOSTS in production.");
   const dataDir = path.resolve(env.DATA_DIR || path.join(backendRoot, "data"));
@@ -47,7 +49,8 @@ export function configuration(env = process.env) {
       env.CORS_ALLOWED_ORIGINS || "http://localhost:8080,http://localhost:3000",
     ),
     trustProxy: env.TRUST_PROXY ? Number(env.TRUST_PROXY) : false,
-    publicOrigin: env.PUBLIC_ORIGIN || "",
+    publicOrigin:
+      env.PUBLIC_ORIGIN || (renderHost ? `https://${renderHost}` : ""),
     demoPayments: !production && flag(env.DEMO_PAYMENTS),
     emailMode: env.EMAIL_MODE || (production ? "smtp" : "console"),
     email: {
