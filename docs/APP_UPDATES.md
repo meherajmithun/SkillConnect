@@ -1,4 +1,18 @@
-# App updates · version 1.1.0
+# App updates · version 1.1.2
+
+## View the layout without a server
+
+Version 1.1.2, build 5, keeps the Discover banner, search layout and navigation
+visible while connecting or when the server is unavailable. A connection card
+explains that services, areas and professionals need a server. Data-dependent
+filters are disabled until connection succeeds. **Try again** restores live
+discovery when the backend becomes reachable. This does not add offline accounts,
+bookings or sample professional listings.
+
+Install `dist/SkillConnect-friends-v1.1.2.apk` over the previous friends build.
+Flutter analysis and all 11 widget tests passed, including a 360 px offline
+layout and successful reconnection test. Physical-device verification remains
+pending.
 
 These updates run with the existing local backend. No hosting is provisioned.
 
@@ -12,8 +26,8 @@ python backend/manage.py runserver 0.0.0.0:8000
 ```
 
 Allow your Wi-Fi IP in `ALLOWED_HOSTS`, as described in `ANDROID_SHARING.md`.
-Install `dist/SkillConnect-friends-v1.1.1.apk` over the previous friends build.
-Existing accounts and data are preserved. The latest icon update is version 1.1.1, build 4; see `BRANDING.md`.
+Install `dist/SkillConnect-friends-v1.1.2.apk` over the previous friends build.
+Existing accounts and data are preserved. The icon update was introduced in version 1.1.1, build 4; see `BRANDING.md`.
 
 ## Account recovery and email verification
 

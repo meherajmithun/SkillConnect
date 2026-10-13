@@ -72,6 +72,13 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   }
 
   void refresh() => setState(() => find());
+  void reconnect() => setState(() {
+    catalogs = Future.wait([
+      widget.api.list('categories/'),
+      widget.api.list('areas/'),
+    ]);
+    find();
+  });
   void open(Json pro) => Navigator.push(
     context,
     MaterialPageRoute(
@@ -82,32 +89,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   Widget build(BuildContext context) => FutureBuilder<List<List<Json>>>(
     future: catalogs,
     builder: (context, snapshot) {
-      if (snapshot.hasError) {
-        return PageBody(
-          children: [
-            EmptyState(
-              'Could not connect',
-              '${snapshot.error}',
-              icon: Icons.wifi_off,
-            ),
-            FilledButton(
-              onPressed: () => setState(() {
-                catalogs = Future.wait([
-                  widget.api.list('categories/'),
-                  widget.api.list('areas/'),
-                ]);
-                find();
-              }),
-              child: const Text('Try again'),
-            ),
-          ],
-        );
-      }
-      if (!snapshot.hasData) {
-        return const Center(child: CircularProgressIndicator());
-      }
-      final categories = snapshot.data![0];
-      areas = snapshot.data![1];
+      final connected = snapshot.hasData && !snapshot.hasError;
+      final categories = snapshot.data?[0] ?? <Json>[];
+      areas = snapshot.data?[1] ?? <Json>[];
       return PageBody(
         children: [
           Container(
@@ -177,6 +161,39 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               ),
             ),
           ),
+          if (!connected) ...[
+            const Gap(16),
+            if (snapshot.hasError)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Could not connect',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      const Gap(8),
+                      const Text(
+                        'You can view the app layout. Connect to a server to load services, areas and professionals.',
+                      ),
+                      const Gap(8),
+                      TextButton.icon(
+                        onPressed: reconnect,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Try again'),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else ...[
+              const LinearProgressIndicator(),
+              const Gap(8),
+              const Text('Connecting to load services and professionals…'),
+            ],
+          ],
           const Gap(24),
           const SectionTitle(
             'What do you need a hand with?',
@@ -190,10 +207,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                 ChoiceChip(
                   label: const Text('All services'),
                   selected: category == null,
-                  onSelected: (_) {
-                    category = null;
-                    refresh();
-                  },
+                  onSelected: !connected
+                      ? null
+                      : (_) {
+                          category = null;
+                          refresh();
+                        },
                 ),
                 for (final c in categories)
                   Padding(
@@ -217,6 +236,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               final fields = [
                 TextField(
                   controller: search,
+                  enabled: connected,
                   decoration: const InputDecoration(
                     labelText: 'Search a name or skill',
                     prefixIcon: Icon(Icons.search),
@@ -224,7 +244,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   onSubmitted: (_) => refresh(),
                 ),
                 DropdownButtonFormField<int>(
-                  initialValue: area,
+                  initialValue: areas.any((a) => a['id'] == area) ? area : null,
                   isExpanded: true,
                   decoration: const InputDecoration(
                     labelText: 'Your area',
@@ -241,11 +261,13 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                         child: Text(a['name']),
                       ),
                   ],
-                  onChanged: (v) {
-                    area = v;
-                    if (v == null) distance = null;
-                    refresh();
-                  },
+                  onChanged: !connected
+                      ? null
+                      : (v) {
+                          area = v;
+                          if (v == null) distance = null;
+                          refresh();
+                        },
                 ),
               ];
               if (c.maxWidth < 600) {
@@ -283,10 +305,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     ),
                     DropdownMenuItem(value: 'distance', child: Text('Nearest')),
                   ],
-                  onChanged: (v) {
-                    sort = v!;
-                    refresh();
-                  },
+                  onChanged: !connected
+                      ? null
+                      : (v) {
+                          sort = v!;
+                          refresh();
+                        },
                 ),
               ),
               SizedBox(
@@ -300,10 +324,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     DropdownMenuItem(value: 4, child: Text('4+ stars')),
                     DropdownMenuItem(value: 4.5, child: Text('4.5+ stars')),
                   ],
-                  onChanged: (v) {
-                    rating = v!;
-                    refresh();
-                  },
+                  onChanged: !connected
+                      ? null
+                      : (v) {
+                          rating = v!;
+                          refresh();
+                        },
                 ),
               ),
               SizedBox(
@@ -322,7 +348,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     DropdownMenuItem(value: 10, child: Text('Within 10 km')),
                     DropdownMenuItem(value: 20, child: Text('Within 20 km')),
                   ],
-                  onChanged: area == null
+                  onChanged: !connected || area == null
                       ? null
                       : (v) {
                           distance = v;
@@ -333,18 +359,20 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               FilterChip(
                 label: const Text('Available now'),
                 selected: available,
-                onSelected: (v) {
-                  available = v;
-                  refresh();
-                },
+                onSelected: !connected
+                    ? null
+                    : (v) {
+                        available = v;
+                        refresh();
+                      },
               ),
               IconButton(
                 tooltip: map ? 'Show list' : 'Show map',
-                onPressed: () => setState(() => map = !map),
+                onPressed: !connected ? null : () => setState(() => map = !map),
                 icon: Icon(map ? Icons.view_list_outlined : Icons.map_outlined),
               ),
               FilledButton.icon(
-                onPressed: refresh,
+                onPressed: connected ? refresh : null,
                 icon: const Icon(Icons.search),
                 label: const Text('Find professionals'),
               ),
@@ -394,108 +422,111 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             ),
           ],
           const Gap(24),
-          FutureBuilder<Json>(
-            future: results,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState != ConnectionState.done) {
-                return const Padding(
-                  padding: EdgeInsets.all(40),
-                  child: Center(child: CircularProgressIndicator()),
-                );
-              }
-              if (snapshot.hasError) {
-                return Column(
-                  children: [
-                    EmptyState('Search could not finish', '${snapshot.error}'),
-                    TextButton(
-                      onPressed: refresh,
-                      child: const Text('Try again'),
-                    ),
-                  ],
-                );
-              }
-              final rows = (snapshot.data!['results'] as List).cast<Json>();
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SectionTitle(
-                    '${snapshot.data!['count']} professionals',
-                    subtitle:
-                        'Compare their work, experience and customer reviews.',
-                  ),
-                  if (rows.isEmpty)
-                    const EmptyState(
-                      'No matches yet',
-                      'Try another service or area, or broaden your filters.',
-                    ),
-                  if (map && rows.isNotEmpty) ...[
-                    SizedBox(
-                      height: 360,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: ProfessionalMap(profiles: rows, onTap: open),
+          if (connected)
+            FutureBuilder<Json>(
+              future: results,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return const Padding(
+                    padding: EdgeInsets.all(40),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                if (snapshot.hasError) {
+                  return Column(
+                    children: [
+                      EmptyState(
+                        'Search could not finish',
+                        '${snapshot.error}',
                       ),
+                      TextButton(
+                        onPressed: refresh,
+                        child: const Text('Try again'),
+                      ),
+                    ],
+                  );
+                }
+                final rows = (snapshot.data!['results'] as List).cast<Json>();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SectionTitle(
+                      '${snapshot.data!['count']} professionals',
+                      subtitle: 'Compare their work, experience and customer reviews.',
                     ),
-                    const Gap(),
-                  ],
-                  LayoutBuilder(
-                    builder: (context, c) => Wrap(
-                      spacing: 16,
-                      children: [
-                        for (final pro in rows)
-                          SizedBox(
-                            width: c.maxWidth > 700
-                                ? (c.maxWidth - 16) / 2
-                                : c.maxWidth,
-                            child: ProfessionalCard(
-                              profile: pro,
-                              onTap: () => open(pro),
-                              trailing: Checkbox(
-                                value: compare.containsKey(pro['id']),
-                                semanticLabel:
-                                    'Compare ${pro['business_name']}',
-                                onChanged: (v) => setState(() {
-                                  if (v == false) {
-                                    compare.remove(pro['id']);
-                                  } else if (compare.length < 3) {
-                                    compare[pro['id']] = pro;
-                                  } else {
-                                    showMessage(
-                                      context,
-                                      'Compare up to three professionals at a time.',
-                                    );
-                                  }
-                                }),
+                    if (rows.isEmpty)
+                      const EmptyState(
+                        'No matches yet',
+                        'Try another service or area, or broaden your filters.',
+                      ),
+                    if (map && rows.isNotEmpty) ...[
+                      SizedBox(
+                        height: 360,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: ProfessionalMap(profiles: rows, onTap: open),
+                        ),
+                      ),
+                      const Gap(),
+                    ],
+                    LayoutBuilder(
+                      builder: (context, c) => Wrap(
+                        spacing: 16,
+                        children: [
+                          for (final pro in rows)
+                            SizedBox(
+                              width: c.maxWidth > 700
+                                  ? (c.maxWidth - 16) / 2
+                                  : c.maxWidth,
+                              child: ProfessionalCard(
+                                profile: pro,
+                                onTap: () => open(pro),
+                                trailing: Checkbox(
+                                  value: compare.containsKey(pro['id']),
+                                  semanticLabel:
+                                      'Compare ${pro['business_name']}',
+                                  onChanged: (v) => setState(() {
+                                    if (v == false) {
+                                      compare.remove(pro['id']);
+                                    } else if (compare.length < 3) {
+                                      compare[pro['id']] = pro;
+                                    } else {
+                                      showMessage(
+                                        context,
+                                        'Compare up to three professionals at a time.',
+                                      );
+                                    }
+                                  }),
+                                ),
                               ),
                             ),
+                        ],
+                      ),
+                    ),
+                    if (snapshot.data!['previous'] != null ||
+                        snapshot.data!['next'] != null)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          TextButton(
+                            onPressed: snapshot.data!['previous'] == null
+                                ? null
+                                : () => setState(() => find(newPage: page - 1)),
+                            child: const Text('Previous'),
                           ),
-                      ],
-                    ),
-                  ),
-                  if (snapshot.data!['previous'] != null ||
-                      snapshot.data!['next'] != null)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        TextButton(
-                          onPressed: snapshot.data!['previous'] == null
-                              ? null
-                              : () => setState(() => find(newPage: page - 1)),
-                          child: const Text('Previous'),
-                        ),
-                        Text('Page $page'),
-                        TextButton(
-                          onPressed: snapshot.data!['next'] == null
-                              ? null
-                              : () => setState(() => find(newPage: page + 1)),
-                          child: const Text('Next'),
-                        ),
-                      ],
-                    ),
-                ],
-              );
-            },
-          ),
+                          Text('Page $page'),
+                          TextButton(
+                            onPressed: snapshot.data!['next'] == null
+                                ? null
+                                : () => setState(() => find(newPage: page + 1)),
+                            child: const Text('Next'),
+                          ),
+                        ],
+                      ),
+                  ],
+                );
+              },
+            ),
         ],
       );
     },

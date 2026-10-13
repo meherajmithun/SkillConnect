@@ -4,7 +4,7 @@
 
 A local service marketplace built from [the project proposal](SkillConnect_2_Page_Proposal_Python.pdf). Customers discover and compare professionals, request quotations, book services and review completed work. Professionals manage a digital business profile, receive requests and purchase service/area-specific promotions.
 
-The version 1.1.0 update adds email recovery/verification, appointment scheduling, accepted-quotation bookings, private messaging and configurable SSLCommerz checkout. See [app updates and integration setup](docs/APP_UPDATES.md).
+The version 1.1.0 update adds email recovery/verification, appointment scheduling, accepted-quotation bookings, private messaging and configurable SSLCommerz checkout. Version 1.1.2 keeps the Discover layout visible without a backend connection. See [app updates and integration setup](docs/APP_UPDATES.md).
 
 ## Stack
 

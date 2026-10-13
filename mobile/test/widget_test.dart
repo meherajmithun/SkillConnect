@@ -36,10 +36,14 @@ const profile = <String, dynamic>{
   'promoted': false,
 };
 
-Api testApi({bool error = false, void Function(http.Request)? inspect}) => Api(
+Api testApi({
+  bool error = false,
+  bool Function()? unavailable,
+  void Function(http.Request)? inspect,
+}) => Api(
   client: MockClient((request) async {
     inspect?.call(request);
-    if (error) {
+    if (error || unavailable?.call() == true) {
       return http.Response(jsonEncode({'detail': 'Server unavailable'}), 503);
     }
     final path = request.url.path;
@@ -107,13 +111,33 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
-  testWidgets('Network errors show a retry action', (tester) async {
+  testWidgets('Offline phone shows discovery layout and recovers on retry', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    var unavailable = true;
     await tester.pumpWidget(
-      SkillConnectApp(api: testApi(error: true)..ready = true),
+      SkillConnectApp(
+        api: testApi(unavailable: () => unavailable)..ready = true,
+      ),
     );
     await tester.pumpAndSettle();
     expect(find.text('Could not connect'), findsOneWidget);
     expect(find.text('Try again'), findsOneWidget);
+    expect(find.text('A little help.\nRight around here.'), findsOneWidget);
+    expect(find.text('What do you need a hand with?'), findsOneWidget);
+    expect(find.text('Discover'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    unavailable = false;
+    await tester.ensureVisible(find.text('Try again'));
+    await tester.tap(find.text('Try again'));
+    await tester.pumpAndSettle();
+    expect(find.text('Could not connect'), findsNothing);
+    expect(find.text('Rahim Electrical Works'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
   testWidgets('Login validates empty credentials', (tester) async {
     await tester.pumpWidget(

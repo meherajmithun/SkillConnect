@@ -2,7 +2,7 @@
 
 ## Install
 
-Send `SkillConnect-friends-v1.1.1.apk` to your friends. On Android, open it and permit installation from the app used to open the file if prompted. The universal APK supports ARM64, ARMv7 and x86_64. This is a development-key-signed testing release, not a Play Store release.
+Send `SkillConnect-friends-v1.1.2.apk` to your friends. On Android, open it and permit installation from the app used to open the file if prompted. The universal APK supports ARM64, ARMv7 and x86_64. This is a development-key-signed testing release, not a Play Store release.
 
 ## Connect on the same Wi-Fi
 
@@ -20,7 +20,7 @@ Send `SkillConnect-friends-v1.1.1.apk` to your friends. On Android, open it and 
 
 The local friends build defaults to `http://192.168.0.174:8000/api/`, the hosting computer's address when it was built. If the address changes, update it in the app. Guest Wi-Fi isolation and the host firewall may block connections; confirm that the phone can open `http://YOUR_COMPUTER_IP:8000/api/health/` in its browser.
 
-The app requires the backend to be running. It will not work from a friend's other network unless you deploy the backend to a publicly reachable HTTPS host. Change the app's server URL to that deployment when available.
+The app layout is visible without a backend. Live services, accounts and bookings require the backend to be running. They will not work from a friend's other network unless you deploy the backend to a publicly reachable HTTPS host. Change the app's server URL to that deployment when available.
 
 ## Demo data
 
@@ -41,4 +41,4 @@ The output is `mobile/build/app/outputs/flutter-apk/app-release.apk`. GitHub Act
 
 For production, use your own signing key, HTTPS hosting and an HTTPS `API_URL`. Omit `ALLOW_HTTP=true`; the production manifest rejects cleartext traffic and the connection settings reject HTTP addresses.
 
-Version 1.1.1 uses build number 4 and can update earlier friends APKs signed with the same development key. Apply backend migrations before using the new features. See [app updates](APP_UPDATES.md).
+Version 1.1.2 uses build number 5 and can update earlier friends APKs signed with the same development key. Apply backend migrations before using the new features. See [app updates](APP_UPDATES.md).
