@@ -87,10 +87,15 @@ cp .env.example .env
 docker compose up --build -d
 ```
 
-The API creates its schema on startup. Admin/seed commands can run inside the
-container with the corresponding environment variables:
-`docker compose exec api node src/commands.js admin` and
-`docker compose exec api node src/commands.js seed`.
+The API creates its schema on startup. Pass admin/seed credentials explicitly
+when running the corresponding commands inside the container:
+
+```sh
+docker compose exec -e ADMIN_USERNAME=admin -e ADMIN_EMAIL=admin@example.com \
+  -e ADMIN_PASSWORD='choose-a-strong-admin-password' api node src/commands.js admin
+docker compose exec -e DEMO_PASSWORD='choose-a-strong-example-password' \
+  api node src/commands.js seed
+```
 
 Production requires PostgreSQL, a strong JWT secret, exact host/origin settings
 and HTTPS from a trusted reverse proxy. Store media on a persistent volume or
