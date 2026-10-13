@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 
 import 'push.dart';
 import 'demo.dart';
+import 'credentials.dart';
 
 typedef Json = Map<String, dynamic>;
 
@@ -41,6 +42,7 @@ class Api extends ChangeNotifier {
   DemoStore? _demo;
   bool get signedIn => user != null;
   bool get isProfessional => user?['role'] == 'professional';
+  SavedLogins get savedLogins => SavedLogins(storage, serverUrl);
 
   // Render's free service can take about a minute to wake after inactivity.
   static Duration _connectionTimeout(String url) => Duration(
