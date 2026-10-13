@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../api.dart';
+import '../credentials.dart';
 import '../ui.dart';
 import 'recovery.dart';
 
@@ -25,15 +27,34 @@ class _AuthScreenState extends State<AuthScreen> {
   final form = GlobalKey<FormState>();
   final username = TextEditingController();
   final password = TextEditingController();
+  final confirmPassword = TextEditingController();
   final email = TextEditingController();
   final name = TextEditingController();
   final phone = TextEditingController();
   bool register = false;
   bool hide = true;
+  bool savePassword = false;
+  List<SavedLogin> saved = [];
   String role = 'customer';
   @override
+  void initState() {
+    super.initState();
+    loadSaved();
+  }
+
+  Future<void> loadSaved() async {
+    if (widget.api.demoMode) return;
+    try {
+      final accounts = await widget.api.savedLogins.load();
+      if (mounted) setState(() => saved = accounts);
+    } catch (_) {
+      // A unavailable password store must not prevent manual sign-in.
+    }
+  }
+
+  @override
   void dispose() {
-    for (final c in [username, password, email, name, phone]) {
+    for (final c in [username, password, confirmPassword, email, name, phone]) {
       c.dispose();
     }
     super.dispose();
@@ -67,128 +88,255 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
           const Gap(),
         ],
-        Form(
-          key: form,
-          child: Column(
-            children: [
-              if (register) ...[
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(
-                      value: 'customer',
-                      label: Text('Find services'),
-                      icon: Icon(Icons.search),
-                    ),
-                    ButtonSegment(
-                      value: 'professional',
-                      label: Text('Offer services'),
-                      icon: Icon(Icons.handyman_outlined),
-                    ),
-                  ],
-                  selected: {role},
-                  onSelectionChanged: (v) => setState(() => role = v.first),
-                ),
-                const Gap(),
-                TextFormField(
-                  controller: name,
-                  decoration: const InputDecoration(labelText: 'Full name'),
-                  validator: requiredText,
-                ),
-                const Gap(),
-                TextFormField(
-                  controller: email,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(labelText: 'Email address'),
-                  validator: (v) =>
-                      v != null &&
-                          RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(v)
-                      ? null
-                      : 'Enter a valid email address.',
-                ),
-                const Gap(),
-                TextFormField(
-                  controller: phone,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(labelText: 'Phone number'),
-                  validator: requiredText,
-                ),
-                const Gap(),
-              ],
-              TextFormField(
-                controller: username,
-                autofillHints: const [AutofillHints.username],
-                decoration: const InputDecoration(labelText: 'Username'),
-                validator: requiredText,
+        if (!register && saved.isNotEmpty) ...[
+          const Text('Saved accounts on this device'),
+          for (final account in saved)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.key_outlined),
+              title: Text(account.identity),
+              subtitle: Text(
+                account.role == 'professional'
+                    ? 'Service provider'
+                    : 'Customer',
               ),
-              const Gap(),
-              TextFormField(
-                controller: password,
-                obscureText: hide,
-                autofillHints: [
-                  register ? AutofillHints.newPassword : AutofillHints.password,
+              onTap: () => setState(() {
+                username.text = account.identity;
+                password.text = account.password;
+                savePassword = true;
+              }),
+              trailing: IconButton(
+                tooltip: 'Forget saved account',
+                icon: const Icon(Icons.close),
+                onPressed: () async {
+                  try {
+                    await widget.api.savedLogins.forget(account.userId);
+                    if (username.text == account.identity) password.clear();
+                    await loadSaved();
+                  } catch (e) {
+                    if (context.mounted) showMessage(context, '$e');
+                  }
+                },
+              ),
+            ),
+          const Gap(),
+        ],
+        AutofillGroup(
+          key: ValueKey(register),
+          onDisposeAction: AutofillContextAction.cancel,
+          child: Form(
+            key: form,
+            child: Column(
+              children: [
+                if (register) ...[
+                  SegmentedButton<String>(
+                    segments: const [
+                      ButtonSegment(
+                        value: 'customer',
+                        label: Text('Find services'),
+                        icon: Icon(Icons.search),
+                      ),
+                      ButtonSegment(
+                        value: 'professional',
+                        label: Text('Offer services'),
+                        icon: Icon(Icons.handyman_outlined),
+                      ),
+                    ],
+                    selected: {role},
+                    onSelectionChanged: (v) => setState(() => role = v.first),
+                  ),
+                  const Gap(),
+                  TextFormField(
+                    controller: name,
+                    keyboardType: TextInputType.name,
+                    autofillHints: const [AutofillHints.name],
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(labelText: 'Full name'),
+                    validator: requiredText,
+                  ),
+                  const Gap(),
+                  TextFormField(
+                    controller: email,
+                    keyboardType: TextInputType.emailAddress,
+                    autofillHints: const [
+                      AutofillHints.username,
+                      AutofillHints.email,
+                    ],
+                    autocorrect: false,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'Email address',
+                    ),
+                    validator: (v) =>
+                        v != null &&
+                            RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(v)
+                        ? null
+                        : 'Enter a valid email address.',
+                  ),
+                  const Gap(),
+                  TextFormField(
+                    controller: phone,
+                    keyboardType: TextInputType.phone,
+                    autofillHints: const [AutofillHints.telephoneNumber],
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'Phone number',
+                    ),
+                    validator: requiredText,
+                  ),
+                  const Gap(),
                 ],
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  suffixIcon: IconButton(
-                    tooltip: hide ? 'Show password' : 'Hide password',
-                    onPressed: () => setState(() => hide = !hide),
-                    icon: Icon(
-                      hide
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined,
+                TextFormField(
+                  controller: username,
+                  keyboardType: register
+                      ? TextInputType.text
+                      : TextInputType.emailAddress,
+                  autofillHints: register
+                      ? null
+                      : const [AutofillHints.username, AutofillHints.email],
+                  autocorrect: false,
+                  textInputAction: TextInputAction.next,
+                  decoration: InputDecoration(
+                    labelText: register ? 'Username' : 'Email or username',
+                  ),
+                  validator: requiredText,
+                ),
+                const Gap(),
+                TextFormField(
+                  controller: password,
+                  obscureText: hide,
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  textInputAction: TextInputAction.done,
+                  autofillHints: [
+                    register
+                        ? AutofillHints.newPassword
+                        : AutofillHints.password,
+                  ],
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    suffixIcon: IconButton(
+                      tooltip: hide ? 'Show password' : 'Hide password',
+                      onPressed: () => setState(() => hide = !hide),
+                      icon: Icon(
+                        hide
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                      ),
                     ),
                   ),
+                  validator: (v) => v == null || v.isEmpty
+                      ? 'Enter your password.'
+                      : register && v.length < 8
+                      ? 'Use at least 8 characters.'
+                      : null,
                 ),
-                validator: (v) => v == null || v.isEmpty
-                    ? 'Enter your password.'
-                    : register && v.length < 8
-                    ? 'Use at least 8 characters.'
-                    : null,
-              ),
-              const Gap(24),
-              SizedBox(
-                width: double.infinity,
-                child: ActionButton(
-                  label: register ? 'Create account' : 'Sign in',
-                  action: () async {
-                    if (!form.currentState!.validate()) return;
-                    if (register) {
-                      final parts = name.text.trim().split(' ');
-                      await widget.api.post('auth/register/', {
-                        'username': username.text.trim(),
-                        'password': password.text,
-                        'email': email.text.trim(),
-                        'first_name': parts.first,
-                        'last_name': parts.skip(1).join(' '),
-                        'phone': phone.text.trim(),
-                        'role': role,
-                      });
-                    }
-                    await widget.api.login(username.text.trim(), password.text);
-                    if (context.mounted) Navigator.pop(context);
-                  },
+                if (register) ...[
+                  const Gap(),
+                  TextFormField(
+                    controller: confirmPassword,
+                    obscureText: hide,
+                    autocorrect: false,
+                    enableSuggestions: false,
+                    autofillHints: null,
+                    decoration: const InputDecoration(
+                      labelText: 'Confirm password',
+                    ),
+                    validator: (v) =>
+                        v == password.text ? null : 'Passwords must match.',
+                  ),
+                ],
+                if (!widget.api.demoMode)
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    title: const Text('Save email and password'),
+                    subtitle: const Text(
+                      'Suggest this account next time on this device.',
+                    ),
+                    value: savePassword,
+                    onChanged: (value) =>
+                        setState(() => savePassword = value ?? false),
+                  ),
+                const Gap(24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ActionButton(
+                    label: register ? 'Create account' : 'Sign in',
+                    action: () async {
+                      if (!form.currentState!.validate()) return;
+                      if (register) {
+                        final parts = name.text.trim().split(' ');
+                        await widget.api.post('auth/register/', {
+                          'username': username.text.trim(),
+                          'password': password.text,
+                          'email': email.text.trim(),
+                          'first_name': parts.first,
+                          'last_name': parts.skip(1).join(' '),
+                          'phone': phone.text.trim(),
+                          'role': role,
+                        });
+                      }
+                      await widget.api.login(
+                        register ? email.text.trim() : username.text.trim(),
+                        password.text,
+                      );
+                      if (!widget.api.demoMode) {
+                        try {
+                          final user = widget.api.user!;
+                          if (savePassword) {
+                            await widget.api.savedLogins.save(
+                              SavedLogin(
+                                email: user['email'],
+                                username: user['username'],
+                                password: password.text,
+                                role: user['role'],
+                                userId: user['id'],
+                              ),
+                            );
+                          } else {
+                            await widget.api.savedLogins.forget(user['id']);
+                          }
+                        } catch (_) {
+                          if (context.mounted) {
+                            showMessage(
+                              context,
+                              'Signed in, but this device could not save your password.',
+                            );
+                          }
+                        }
+                        TextInput.finishAutofillContext(
+                          shouldSave: savePassword,
+                        );
+                      }
+                      if (context.mounted) Navigator.pop(context);
+                    },
+                  ),
                 ),
-              ),
-              const Gap(),
-              if (!register)
+                const Gap(),
+                if (!register)
+                  TextButton(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => RecoveryScreen(api: widget.api),
+                      ),
+                    ),
+                    child: const Text('Forgot password?'),
+                  ),
                 TextButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => RecoveryScreen(api: widget.api),
-                    ),
+                  onPressed: () {
+                    TextInput.finishAutofillContext(shouldSave: false);
+                    setState(() => register = !register);
+                  },
+                  child: Text(
+                    register
+                        ? 'Already have an account? Sign in'
+                        : 'New here? Create an account',
                   ),
-                  child: const Text('Forgot password?'),
                 ),
-              TextButton(
-                onPressed: () => setState(() => register = !register),
-                child: Text(
-                  register
-                      ? 'Already have an account? Sign in'
-                      : 'New here? Create an account',
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ],
@@ -285,6 +433,7 @@ class AccountScreen extends StatelessWidget {
           if (api.startupError != null) ...[
             const Gap(),
             Text(api.startupError!),
+            ActionButton(label: 'Retry saved session', action: api.initialize),
           ],
         ],
       );
@@ -492,12 +641,18 @@ class _EditAccountScreenState extends State<EditAccountScreen> {
                 label: 'Save changes',
                 action: () async {
                   if (!form.currentState!.validate()) return;
-                  widget.api.updateUser(
-                    await widget.api.patch(
-                      'me/',
-                      fields.map((k, v) => MapEntry(k, v.text.trim())),
-                    ),
+                  final updated = await widget.api.patch(
+                    'me/',
+                    fields.map((k, v) => MapEntry(k, v.text.trim())),
                   );
+                  widget.api.updateUser(updated);
+                  if (!widget.api.demoMode) {
+                    try {
+                      await widget.api.savedLogins.updateAccount(updated);
+                    } catch (_) {
+                      // Account changes succeeded even if device storage is unavailable.
+                    }
+                  }
                   if (context.mounted) {
                     showMessage(context, 'Account updated.');
                     Navigator.pop(context);

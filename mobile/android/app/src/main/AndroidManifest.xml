@@ -2,6 +2,7 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="SkillConnect"
+        android:allowBackup="false"
         android:usesCleartextTraffic="${allowCleartext}"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
