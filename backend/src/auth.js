@@ -246,17 +246,21 @@ export function authentication(db, config) {
       res.status(201).json(user);
     });
     app.post("/api/auth/login/", throttle("auth", 20), async (req, res) => {
-      const username = text(req.body.username, "username", 150),
+      const username = text(
+          req.body.username ?? req.body.email,
+          "email or username",
+          254,
+        ),
         password = req.body.password;
       if (typeof password !== "string" || !password || password.length > 128)
         reject("Enter your password.");
       const result = await db.transaction(async (tx) => {
         const user = await tx.one(
-          "SELECT * FROM users WHERE username=? AND is_active=1",
-          [username],
+          "SELECT * FROM users WHERE (username=? OR LOWER(email)=LOWER(?)) AND is_active=1 ORDER BY CASE WHEN LOWER(email)=LOWER(?) THEN 0 ELSE 1 END LIMIT 1",
+          [username, username, username],
         );
         if (!(await checkPassword(password, user?.password)))
-          reject("Invalid username or password.", 401);
+          reject("Invalid email, username or password.", 401);
         return tokenPair(tx, user);
       });
       res.json(result);

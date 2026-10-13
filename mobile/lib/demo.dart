@@ -519,12 +519,17 @@ class DemoStore {
         final row = rows('users')
             .where(
               (u) =>
-                  u['username'] == body['username'] &&
+                  (u['username'] == body['username'] ||
+                      '${u['email']}'.toLowerCase() ==
+                          '${body['username']}'.trim().toLowerCase()) &&
                   u['password'] == body['password'],
             )
             .firstOrNull;
         if (row == null) {
-          throw ApiException('Incorrect demo username or password.', 401);
+          throw ApiException(
+            'Incorrect demo email, username or password.',
+            401,
+          );
         }
         userId = row['id'];
         return publicUser(row);
