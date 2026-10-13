@@ -2,8 +2,10 @@
 
 The live API is [skillconnect-api-6bwr.onrender.com](https://skillconnect-api-6bwr.onrender.com/api/health/).
 Health and public catalogue requests returned HTTP 200 during deployment
-verification. The hosted catalogue is currently empty; no sample data was added.
-The phone build is `dist/SkillConnect-v2.0.1.apk`, version 2.0.1, build 9.
+verification. Startup initializes service categories, Dhaka areas and promotion
+packages once when their tables are empty. It creates no sample accounts or profiles
+and preserves administrator-managed catalogue tables and later deletions.
+The phone build is `dist/SkillConnect-v2.1.0.apk`, version 2.1.0, build 10.
 It uses this HTTPS address by default and automatically replaces saved HTTP
 addresses from earlier local builds, clearing their login tokens.
 
@@ -33,7 +35,10 @@ Render address until the account connection and deployment have completed.
 
 Register your own customer and professional accounts in Flutter. This is a new
 database, so records stored on the computer are not automatically available.
-Populate real service categories, areas and promotion packages through `/admin/`.
+Manage service categories, areas and promotion packages through `/admin/`.
+The initial catalogue contains eight services, Mirpur/Dhanmondi/Uttara areas,
+and four packages. Add other supported areas through administration; providers
+select the areas they actually serve in **My business → Edit business profile**.
 For a paid web service, create your administrator from the Render Shell:
 
 ```sh
@@ -58,7 +63,7 @@ For a new APK with the Render address as its default:
 
 ```sh
 cd mobile
-flutter build apk --release --build-name=2.0.1 --build-number=9 \
+flutter build apk --release --build-name=2.1.0 --build-number=10 \
   --dart-define=DEMO_AVAILABLE=false \
   --dart-define=DEMO_MODE=false \
   --dart-define=API_URL=https://YOUR_RENDER_HOST/api/
