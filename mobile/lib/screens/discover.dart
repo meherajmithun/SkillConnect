@@ -184,11 +184,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                         icon: const Icon(Icons.refresh),
                         label: const Text('Try again'),
                       ),
-                      TextButton.icon(
-                        onPressed: widget.api.startDemo,
-                        icon: const Icon(Icons.touch_app_outlined),
-                        label: const Text('Explore offline demo'),
-                      ),
+                      if (Api.demoAvailable)
+                        TextButton.icon(
+                          onPressed: widget.api.startDemo,
+                          icon: const Icon(Icons.touch_app_outlined),
+                          label: const Text('Explore offline demo'),
+                        ),
                     ],
                   ),
                 ),

@@ -18,6 +18,10 @@ class ApiException implements Exception {
 }
 
 class Api extends ChangeNotifier {
+  static const demoAvailable = bool.fromEnvironment(
+    'DEMO_AVAILABLE',
+    defaultValue: true,
+  );
   late final PushService push = PushService(this);
   static const baseUrl = String.fromEnvironment(
     'API_URL',
@@ -49,7 +53,9 @@ class Api extends ChangeNotifier {
   Future<void> initialize() async {
     try {
       serverUrl = await storage.read(key: 'server_url') ?? baseUrl;
-      final savedDemo = await storage.read(key: 'demo_enabled');
+      final savedDemo = demoAvailable
+          ? await storage.read(key: 'demo_enabled')
+          : 'false';
       if (savedDemo == 'true' ||
           savedDemo == null && const bool.fromEnvironment('DEMO_MODE')) {
         await startDemo();
@@ -324,6 +330,9 @@ class Api extends ChangeNotifier {
   }
 
   Future<void> startDemo() async {
+    if (!demoAvailable) {
+      throw ApiException('This build uses the live SkillConnect server.');
+    }
     if (demoMode) return;
     final saved = await storage.read(key: 'demo_state_v1');
     _demo = saved == null

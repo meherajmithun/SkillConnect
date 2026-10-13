@@ -2,12 +2,18 @@
 
 ## Install
 
+The current live build is `dist/SkillConnect-v2.0.0.apk`, version 2.0.0,
+build 8. It connects to the Node.js backend and is built with
+`DEMO_AVAILABLE=false` and `DEMO_MODE=false`. Saved demo settings from earlier
+APKs are ignored, and demo controls are hidden. It loads the records currently
+stored on the backend; it does not bundle sample accounts or professionals.
+
 For faculty review without hosting, send `SkillConnect-demo-v1.2.1.apk`.
 It opens the interactive offline demo automatically and preserves local changes.
 Use Account → Switch demo account to choose a role, and the link icon to reset the sample data or
 connect to a live server. See the [faculty walkthrough](FACULTY_DEMO.md).
 
-Send `SkillConnect-friends-v1.1.2.apk` to your friends. On Android, open it and permit installation from the app used to open the file if prompted. The universal APK supports ARM64, ARMv7 and x86_64. This is a development-key-signed testing release, not a Play Store release.
+Send `SkillConnect-v2.0.0.apk` to your friends. On Android, open it and permit installation from the app used to open the file if prompted. The universal APK supports ARM64, ARMv7 and x86_64. This is a development-key-signed testing release, not a Play Store release.
 
 ## Connect on the same Wi-Fi
 
@@ -38,6 +44,7 @@ The local database includes sample professionals and completed reviews. Demo pho
 ```sh
 cd mobile
 flutter build apk --release \
+  --dart-define=DEMO_AVAILABLE=false \
   --dart-define=ALLOW_HTTP=true \
   --dart-define=API_URL=http://YOUR_COMPUTER_IP:8000/api/
 ```
@@ -46,7 +53,7 @@ The output is `mobile/build/app/outputs/flutter-apk/app-release.apk`. GitHub Act
 
 For production, use your own signing key, HTTPS hosting and an HTTPS `API_URL`. Omit `ALLOW_HTTP=true`; the production manifest rejects cleartext traffic and the connection settings reject HTTP addresses.
 
-Version 1.2.1 uses build number 7 and can update earlier friends APKs signed with the same development key. Run `npm run migrate` when connecting to the live backend. See [app updates](APP_UPDATES.md).
+Version 2.0.0 uses build number 8 and can update earlier friends APKs signed with the same development key. Run `npm run migrate` when connecting to the live backend. See [app updates](APP_UPDATES.md).
 
-To rebuild the faculty demo, add `--dart-define=DEMO_MODE=true` to the rebuild
-command above. GitHub Actions also uploads `SkillConnect-offline-demo-apk`.
+To rebuild the faculty demo, use `--dart-define=DEMO_AVAILABLE=true` and
+`--dart-define=DEMO_MODE=true`. GitHub Actions also uploads `SkillConnect-offline-demo-apk`.
