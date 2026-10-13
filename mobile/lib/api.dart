@@ -58,6 +58,7 @@ class Api extends ChangeNotifier {
           .replace(queryParameters: query?.map((k, v) => MapEntry(k, '$v')));
 
   Future<void> initialize() async {
+    startupError = null;
     try {
       final savedServer = await storage.read(key: 'server_url');
       final needsHostedServer =
@@ -86,8 +87,8 @@ class Api extends ChangeNotifier {
         await push.restoreForUser();
       }
     } catch (e) {
-      startupError = 'Could not restore your session. Sign in again when the server is available.';
-      await clearSession();
+      startupError = 'Could not restore your session. Try again when the server is available.';
+      if (e is ApiException && e.status == 401) await clearSession();
     } finally {
       ready = true;
       notifyListeners();
