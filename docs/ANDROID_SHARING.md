@@ -18,7 +18,7 @@ Send `SkillConnect-friends-v1.1.1.apk` to your friends. On Android, open it and 
 3. Open the link icon in the APK toolbar. Enter `http://YOUR_COMPUTER_IP:8000/api/` and tap **Test connection & save**.
 4. Browse services. Create a customer account to book, or a professional account to add a business profile. Set at least one service and area on a new professional profile.
 
-The local friends build defaults to `http://192.168.0.231:8000/api/`, the hosting computer's address when it was built. If the address changes, update it in the app. Guest Wi-Fi isolation and the host firewall may block connections; confirm that the phone can open `http://YOUR_COMPUTER_IP:8000/api/health/` in its browser.
+The local friends build defaults to `http://192.168.0.174:8000/api/`, the hosting computer's address when it was built. If the address changes, update it in the app. Guest Wi-Fi isolation and the host firewall may block connections; confirm that the phone can open `http://YOUR_COMPUTER_IP:8000/api/health/` in its browser.
 
 The app requires the backend to be running. It will not work from a friend's other network unless you deploy the backend to a publicly reachable HTTPS host. Change the app's server URL to that deployment when available.
 

@@ -10,14 +10,14 @@ Checked on 2026-10-13 against the working tree before the release commit.
 | Django system and migration checks | Passed; no missing migrations |
 | Flutter tests and analysis | 11 passed; no analysis issues |
 | Dart formatting | Passed; no changes needed |
-| Android release build | Passed with `ALLOW_HTTP=true` and emulator API URL `http://10.0.2.2:8000/api/` |
+| Android release build | Passed with `ALLOW_HTTP=true` and local Wi-Fi API URL `http://192.168.0.174:8000/api/` |
 | APK upgrade metadata | Prior 1.1.0: `com.skillconnect.mobile`, version code 3. New 1.1.1: same package, version code 4. Both APKs use the same signing certificate (SHA-256 `88dccd5dcbea704f559839f2a39c4564c1f1f7d149c1c747bab28e4d6925acfb`). |
 
-The new build is `mobile/build/app/outputs/flutter-apk/app-release.apk`. Its
-SHA-256 is `ed4134c864a3189f3f575ce7e28ed7b83b1886d63fb0d8097e8b2dc25e08483e`.
-That build uses the Android emulator API address and is not the LAN friends APK.
-`dist/SkillConnect-friends-v1.1.1.apk` is an earlier local build; it was not
-replaced or retested here.
+The updated build is copied to `dist/SkillConnect-friends-v1.1.1.apk`. Its
+SHA-256 is `1a990f6e6cf3c68fc2094835edfad1869b72607612d29a3a73584b7c71db3b4f`.
+It uses the computer's local Wi-Fi API address. Change the server address in
+the app if the computer's IP changes. APKs remain outside Git history; CI
+also produces an APK artifact.
 
 ## Device and user acceptance still required
 
