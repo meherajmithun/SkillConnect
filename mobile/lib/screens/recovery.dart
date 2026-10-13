@@ -141,6 +141,12 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
                   );
                   if (widget.verification) {
                     widget.api.updateUser(await widget.api.get('me/'));
+                  } else if (!widget.api.demoMode) {
+                    await widget.api.savedLogins.forgetEmail(email.text);
+                    if ('${widget.api.user?['email']}'.toLowerCase() ==
+                        email.text.trim().toLowerCase()) {
+                      await widget.api.clearSession();
+                    }
                   }
                   if (context.mounted) {
                     showMessage(context, result['detail']);
