@@ -7,6 +7,11 @@ Customers discover professionals, compare work, request quotations, book service
 message and review completed work. Professionals manage profiles, appointments
 and service/area promotions. Staff use the Node.js administration console.
 
+The latest live Android build is `dist/SkillConnect-v2.1.0.apk`. Both roles can
+sign in by email or username and opt in to saved email/password suggestions.
+Providers start in My business, select their services and areas, and can edit
+portfolio projects. See the [role audit and release checks](docs/ROLE_AUDIT_2_1_0.md).
+
 ## Stack
 
 - Flutter/Dart for Android, iOS and web.

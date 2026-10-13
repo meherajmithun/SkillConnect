@@ -1,4 +1,25 @@
-# App updates · version 2.0.1
+# App updates · version 2.1.0
+
+Version 2.1.0, build 10, audits and fixes both account roles. Install
+`dist/SkillConnect-v2.1.0.apk` over the previous live APK.
+
+- Sign in by email or username. **Save email and password** offers encrypted,
+  per-server account suggestions for customers and providers, plus platform
+  password-manager autofill. Saving is opt-in; failed logins are never saved.
+- Providers open My business and get an explicit service/area setup action.
+  Selected services and areas are visible in the dashboard; unfinished profiles
+  stay out of customer search. Empty catalogue tables receive reference data at
+  server startup, without sample accounts or marketplace activity.
+- Tap a portfolio project to edit its title, description or photo.
+- Quotes show their service area. Bookings offer participant contact buttons,
+  and role-specific estimate/review labels describe the correct party.
+- Estimates for removed services/areas show guidance instead of crashing.
+- Notifications, public reviews and promotions load all pages. Temporary
+  server outages preserve session tokens and offer **Retry saved session**.
+
+See [the role audit](ROLE_AUDIT_2_1_0.md) for validation and integration limits.
+
+## Hosted API connection in version 2.0.1
 
 Version 2.0.1, build 9, connects to the deployed Node.js API at
 `https://skillconnect-api-6bwr.onrender.com/api/`. Install

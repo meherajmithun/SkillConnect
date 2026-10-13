@@ -2,8 +2,8 @@
 
 ## Install
 
-The current hosted build is `dist/SkillConnect-v2.0.1.apk`, version 2.0.1,
-build 9. It connects to `https://skillconnect-api-6bwr.onrender.com/api/` and is built with
+The current hosted build is `dist/SkillConnect-v2.1.0.apk`, version 2.1.0,
+build 10. It connects to `https://skillconnect-api-6bwr.onrender.com/api/` and is built with
 `DEMO_AVAILABLE=false` and `DEMO_MODE=false`. Saved demo settings from earlier
 APKs are ignored, and demo controls are hidden. It loads the records currently
 stored on the backend; it does not bundle sample accounts or professionals.
@@ -20,9 +20,18 @@ It opens the interactive offline demo automatically and preserves local changes.
 Use Account → Switch demo account to choose a role, and the link icon to reset the sample data or
 connect to a live server. See the [faculty walkthrough](FACULTY_DEMO.md).
 
-Send `SkillConnect-v2.0.1.apk` to your friends. On Android, open it and permit installation from the app used to open the file if prompted. The universal APK supports ARM64, ARMv7 and x86_64. This is a development-key-signed testing release, not a Play Store release.
+Send `SkillConnect-v2.1.0.apk` to your friends. On Android, open it and permit installation from the app used to open the file if prompted. The universal APK supports ARM64, ARMv7 and x86_64. This is a development-key-signed testing release, not a Play Store release.
+
+Both roles can sign in with email or username. Check **Save email and password**
+to keep encrypted credentials on this device. On the next sign-in, tap a saved
+account to fill both fields; use its × button to forget it. Android's configured
+password manager can also suggest credentials. New providers open **My business**
+and use **Choose services and areas** to finish setup before appearing in search.
 
 ## Connect on the same Wi-Fi
+
+These steps require a separate local APK built with `ALLOW_HTTP=true`, as shown
+under Rebuild. The hosted live APK accepts HTTPS addresses only.
 
 1. Keep the hosting computer and phones on the same Wi-Fi network.
 2. Start the Node.js backend with your computer's IP allowed:
