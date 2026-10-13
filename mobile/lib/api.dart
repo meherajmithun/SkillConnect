@@ -202,9 +202,16 @@ class Api extends ChangeNotifier {
   Future<dynamic> delete(String path) => request('DELETE', path);
 
   Future<List<Json>> list(String path, {Json? query}) async {
-    final value = await get(path, query: query);
-    final rows = value is List ? value : value['results'] as List;
-    return rows.map((e) => Map<String, dynamic>.from(e)).toList();
+    final rows = <Json>[];
+    var page = int.tryParse('${query?['page'] ?? 1}') ?? 1;
+    while (true) {
+      final value = await get(path, query: {...?query, 'page': page});
+      final items = value is List ? value : value['results'] as List;
+      rows.addAll(items.map((e) => Map<String, dynamic>.from(e)));
+      if (value is List || value['next'] == null || items.isEmpty) return rows;
+      // Build the next request from our own API address, never a response URL.
+      page++;
+    }
   }
 
   Future<void> login(String username, String password) async {
