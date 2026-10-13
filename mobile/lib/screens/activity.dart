@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../api.dart';
 import '../ui.dart';
@@ -49,160 +50,182 @@ class _ServiceRequestScreenState extends State<ServiceRequestScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      title: Text(widget.isQuote ? 'Request a quote' : 'Book a service'),
-    ),
-    body: PageBody(
-      width: 600,
-      children: [
-        SectionTitle(
-          widget.profile['business_name'],
-          subtitle: widget.isQuote
-              ? 'Describe the work to get an estimate.'
-              : 'Your booking is confirmed after the professional accepts it.',
+  Widget build(BuildContext context) {
+    final supported =
+        (widget.profile['categories'] as List).any(
+          (c) => c['id'] == category,
+        ) &&
+        (widget.profile['areas'] as List).any((a) => a['id'] == area);
+    if (!supported) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Service request')),
+        body: PageBody(
+          children: [
+            EmptyState(
+              widget.quote == null
+                  ? 'Business setup is incomplete'
+                  : 'This estimate needs updating',
+              widget.quote == null
+                  ? 'The provider needs to add services and areas before receiving requests.'
+                  : 'The provider no longer offers this service or area. Ask them for a new estimate in Messages.',
+            ),
+          ],
         ),
-        Form(
-          key: form,
-          child: Column(
-            children: [
-              DropdownButtonFormField<int>(
-                initialValue: category,
-                decoration: const InputDecoration(labelText: 'Service'),
-                items: [
-                  for (final c in widget.profile['categories'])
-                    DropdownMenuItem(
-                      value: c['id'] as int,
-                      child: Text(c['name']),
+      );
+    }
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.isQuote ? 'Request a quote' : 'Book a service'),
+      ),
+      body: PageBody(
+        width: 600,
+        children: [
+          SectionTitle(
+            widget.profile['business_name'],
+            subtitle: widget.isQuote ? 'Describe the work to get an estimate.' : 'Your booking is confirmed after the professional accepts it.',
+          ),
+          Form(
+            key: form,
+            child: Column(
+              children: [
+                DropdownButtonFormField<int>(
+                  initialValue: category,
+                  decoration: const InputDecoration(labelText: 'Service'),
+                  items: [
+                    for (final c in widget.profile['categories'])
+                      DropdownMenuItem(
+                        value: c['id'] as int,
+                        child: Text(c['name']),
+                      ),
+                  ],
+                  onChanged: widget.quote != null ? null : (v) => category = v,
+                  validator: (v) => v == null ? 'Choose a service.' : null,
+                ),
+                const Gap(),
+                DropdownButtonFormField<int>(
+                  initialValue: area,
+                  decoration: const InputDecoration(labelText: 'Service area'),
+                  items: [
+                    for (final a in widget.profile['areas'])
+                      DropdownMenuItem(
+                        value: a['id'] as int,
+                        child: Text(a['name']),
+                      ),
+                  ],
+                  onChanged: widget.quote != null ? null : (v) => area = v,
+                  validator: (v) => v == null ? 'Choose an area.' : null,
+                ),
+                const Gap(),
+                if (!widget.isQuote) ...[
+                  TextFormField(
+                    controller: address,
+                    maxLength: 300,
+                    decoration: const InputDecoration(
+                      labelText: 'Service address',
                     ),
-                ],
-                onChanged: widget.quote != null ? null : (v) => category = v,
-                validator: (v) => v == null ? 'Choose a service.' : null,
-              ),
-              const Gap(),
-              DropdownButtonFormField<int>(
-                initialValue: area,
-                decoration: const InputDecoration(labelText: 'Service area'),
-                items: [
-                  for (final a in widget.profile['areas'])
-                    DropdownMenuItem(
-                      value: a['id'] as int,
-                      child: Text(a['name']),
+                    validator: requiredText,
+                  ),
+                  const Gap(),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.calendar_month_outlined),
+                      label: Text(
+                        scheduled == null
+                            ? 'Choose date & time'
+                            : dateLabel(scheduled!.toIso8601String()),
+                      ),
+                      onPressed: () async {
+                        final value = await chooseAppointment(
+                          context,
+                          widget.api,
+                          widget.profile['id'],
+                        );
+                        if (value != null && mounted) {
+                          setState(() {
+                            appointment = value;
+                            scheduled = DateTime.parse(value['scheduled_at'])
+                                .toLocal();
+                          });
+                        }
+                      },
                     ),
+                  ),
+                  const Gap(),
                 ],
-                onChanged: widget.quote != null ? null : (v) => area = v,
-                validator: (v) => v == null ? 'Choose an area.' : null,
-              ),
-              const Gap(),
-              if (!widget.isQuote) ...[
+                if (widget.quote != null) ...[
+                  Text(
+                    'Agreed price: ${money(widget.quote!['amount'])}',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  Text(widget.quote!['response']),
+                  const Gap(),
+                ],
                 TextFormField(
-                  controller: address,
-                  maxLength: 300,
+                  readOnly: widget.quote != null,
+                  controller: details,
+                  maxLines: 5,
+                  maxLength: 2000,
                   decoration: const InputDecoration(
-                    labelText: 'Service address',
+                    labelText: 'Describe the work',
+                    hintText: 'What needs doing? Include anything the professional should know.',
                   ),
                   validator: requiredText,
                 ),
-                const Gap(),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.calendar_month_outlined),
-                    label: Text(
-                      scheduled == null
-                          ? 'Choose date & time'
-                          : dateLabel(scheduled!.toIso8601String()),
-                    ),
-                    onPressed: () async {
-                      final value = await chooseAppointment(
-                        context,
-                        widget.api,
-                        widget.profile['id'],
-                      );
-                      if (value != null && mounted) {
-                        setState(() {
-                          appointment = value;
-                          scheduled = DateTime.parse(value['scheduled_at'])
-                              .toLocal();
-                        });
-                      }
-                    },
-                  ),
-                ),
-                const Gap(),
-              ],
-              if (widget.quote != null) ...[
-                Text(
-                  'Agreed price: ${money(widget.quote!['amount'])}',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                Text(widget.quote!['response']),
-                const Gap(),
-              ],
-              TextFormField(
-                readOnly: widget.quote != null,
-                controller: details,
-                maxLines: 5,
-                maxLength: 2000,
-                decoration: const InputDecoration(
-                  labelText: 'Describe the work',
-                  hintText: 'What needs doing? Include anything the professional should know.',
-                ),
-                validator: requiredText,
-              ),
-              const Gap(24),
-              ActionButton(
-                label: widget.quote != null
-                    ? 'Accept estimate and request booking'
-                    : widget.isQuote
-                    ? 'Send quote request'
-                    : 'Send booking request',
-                action: () async {
-                  if (!form.currentState!.validate()) return;
-                  if (!widget.isQuote &&
-                      (scheduled == null ||
-                          scheduled!.isBefore(DateTime.now()))) {
-                    showMessage(context, 'Choose a future date and time.');
-                    return;
-                  }
-                  await widget.api.post(
-                    widget.quote != null
-                        ? 'quotes/${widget.quote!['id']}/accept/'
-                        : widget.isQuote
-                        ? 'quotes/'
-                        : 'bookings/',
-                    {
-                      'professional': widget.profile['id'],
-                      'category': category,
-                      'area': area,
-                      'details': details.text.trim(),
-                      if (!widget.isQuote) ...{
-                        'address': address.text.trim(),
-                        'scheduled_at': scheduled!.toUtc().toIso8601String(),
-                        'duration_minutes': appointment!['duration_minutes'],
-                        'slot': appointment!['slot'],
-                        if (widget.quote != null)
-                          'quote_revision': widget.quote!['revision'],
+                const Gap(24),
+                ActionButton(
+                  label: widget.quote != null
+                      ? 'Accept estimate and request booking'
+                      : widget.isQuote
+                      ? 'Send quote request'
+                      : 'Send booking request',
+                  action: () async {
+                    if (!form.currentState!.validate()) return;
+                    if (!widget.isQuote &&
+                        (scheduled == null ||
+                            scheduled!.isBefore(DateTime.now()))) {
+                      showMessage(context, 'Choose a future date and time.');
+                      return;
+                    }
+                    await widget.api.post(
+                      widget.quote != null
+                          ? 'quotes/${widget.quote!['id']}/accept/'
+                          : widget.isQuote
+                          ? 'quotes/'
+                          : 'bookings/',
+                      {
+                        'professional': widget.profile['id'],
+                        'category': category,
+                        'area': area,
+                        'details': details.text.trim(),
+                        if (!widget.isQuote) ...{
+                          'address': address.text.trim(),
+                          'scheduled_at': scheduled!.toUtc().toIso8601String(),
+                          'duration_minutes': appointment!['duration_minutes'],
+                          'slot': appointment!['slot'],
+                          if (widget.quote != null)
+                            'quote_revision': widget.quote!['revision'],
+                        },
                       },
-                    },
-                  );
-                  if (context.mounted) {
-                    showMessage(
-                      context,
-                      widget.isQuote
-                          ? 'Quote request sent. Track it in Activity.'
-                          : 'Booking request sent. Track it in Activity.',
                     );
-                    Navigator.pop(context);
-                  }
-                },
-              ),
-            ],
+                    if (context.mounted) {
+                      showMessage(
+                        context,
+                        widget.isQuote
+                            ? 'Quote request sent. Track it in Activity.'
+                            : 'Booking request sent. Track it in Activity.',
+                      );
+                      Navigator.pop(context);
+                    }
+                  },
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }
 
 class ActivityScreen extends StatefulWidget {
@@ -485,6 +508,24 @@ class BookingCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                if ('${b[api.isProfessional ? 'customer_phone' : 'professional_phone'] ?? ''}'
+                    .isNotEmpty)
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.call_outlined),
+                    label: Text(
+                      api.isProfessional ? 'Call customer' : 'Call provider',
+                    ),
+                    onPressed: () async {
+                      final phone =
+                          '${b[api.isProfessional ? 'customer_phone' : 'professional_phone']}';
+                      if (api.demoMode ||
+                          !await launchUrl(Uri(scheme: 'tel', path: phone))) {
+                        if (context.mounted) {
+                          showMessage(context, 'Call $phone');
+                        }
+                      }
+                    },
+                  ),
                 for (final target in options)
                   ActionButton(
                     label: {
@@ -546,7 +587,10 @@ class BookingCard extends StatelessWidget {
               ],
             ),
             if (b['review'] != null) ...[
-              Tag('Your review: ${b['review']['rating']}/5', icon: Icons.star),
+              Tag(
+                '${api.isProfessional ? 'Customer review' : 'Your review'}: ${b['review']['rating']}/5',
+                icon: Icons.star,
+              ),
               const Gap(8),
               Text(b['review']['comment']),
             ],
@@ -588,13 +632,17 @@ class QuoteCard extends StatelessWidget {
               Tag(
                 quote['amount'] == null
                     ? 'Awaiting estimate'
+                    : api.isProfessional
+                    ? 'Estimate sent'
                     : 'Quote received',
                 color: quote['amount'] == null ? blue : teal,
               ),
             ],
           ),
           const Gap(8),
-          Text('#${quote['id']} · ${quote['category_name']}'),
+          Text(
+            '#${quote['id']} · ${quote['category_name']} · ${quote['area_name']}',
+          ),
           const Gap(12),
           Text(quote['details']),
           if (quote['amount'] != null) ...[
@@ -719,7 +767,9 @@ class _QuoteReplyScreenState extends State<QuoteReplyScreen> {
                 decoration: const InputDecoration(
                   labelText: 'Estimated price (BDT)',
                 ),
-                validator: (v) => (num.tryParse(v ?? '') ?? 0) > 0
+                validator: (v) =>
+                    (num.tryParse(v ?? '') ?? 0) > 0 &&
+                        (num.tryParse(v ?? '')?.isFinite ?? false)
                     ? null
                     : 'Enter a positive price.',
               ),
