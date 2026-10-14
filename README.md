@@ -2,13 +2,39 @@
 
 **Find skills. Connect locally. Grow your business.**
 
-## Run on localhost (VS Code + Chrome)
+SkillConnect is a service marketplace. Customers can find professionals, request
+quotes, book services, and leave reviews. Professionals can manage their profiles,
+appointments, and promotions. Staff have a separate administration page.
 
-You need **Node.js 22.13+**, **Flutter**, and **Chrome** installed. Open the
-`SkillConnect` folder in VS Code, then open **two terminals** (Terminal → New
-Terminal). The backend and frontend must both stay running.
+The app has two parts that run together:
 
-**Terminal 1 — backend.** If your terminal starts in `varsity-project`, run:
+| Part | Folder | What it does |
+| --- | --- | --- |
+| Backend | `SkillConnect/` | Node.js API and local database |
+| Frontend | `SkillConnect/mobile/` | Flutter app shown in Chrome or on a phone |
+
+## Run locally in VS Code
+
+### 1. Install the tools
+
+Install [Node.js](https://nodejs.org/) **22.13 or newer**, the
+[Flutter SDK](https://docs.flutter.dev/get-started/install), and Chrome. Check
+that they work in a terminal:
+
+```sh
+node --version
+npm --version
+flutter --version
+```
+
+Open the `SkillConnect` folder in VS Code. You will need **two terminals**:
+choose **Terminal → New Terminal** twice. Keep both running while you use the app.
+
+### 2. Start the backend in Terminal 1
+
+These commands run from the **SkillConnect repository folder**, which contains
+`package.json`. If your terminal is in `varsity-project`, first run
+`cd SkillConnect`:
 
 ```sh
 cd SkillConnect
@@ -18,13 +44,21 @@ npm run migrate
 npm run dev
 ```
 
-`pwd` should end in `/varsity-project/SkillConnect`. Run `npm ci` and
-`npm run migrate` the first time you set up the project; on later starts,
-`npm run dev` is enough. Keep this terminal open. Check the backend at
-<http://localhost:8000/api/health/>.
+The `pwd` output should end in `/varsity-project/SkillConnect`. If VS Code
+already opened the terminal in `SkillConnect`, skip `cd SkillConnect`.
+`npm ci` installs dependencies, and `npm run migrate` prepares the local
+database. You normally run those two commands only on first setup or when the
+project's dependencies or database schema change. For everyday use, run
+`npm run dev`.
 
-**Terminal 2 — Flutter frontend.** Open another terminal in VS Code. If it
-starts in `SkillConnect`, run:
+Leave Terminal 1 open. Visit <http://localhost:8000/api/health/> in Chrome to
+check that the backend is running. The staff page is at
+<http://localhost:8000/admin/>; it needs a staff account (see below).
+
+### 3. Start Flutter in Terminal 2
+
+These commands run from the **mobile folder**, which contains `pubspec.yaml`.
+In a new VS Code terminal that starts in `SkillConnect`, run:
 
 ```sh
 cd mobile
@@ -33,149 +67,113 @@ flutter pub get
 flutter run -d chrome --web-port=8080 --dart-define=ALLOW_HTTP=true
 ```
 
-`pwd` should end in `/varsity-project/SkillConnect/mobile`, where
-`pubspec.yaml` lives. Run `flutter pub get` on first setup or after changing
-Flutter dependencies. Open <http://localhost:8080> if Chrome does not open
-automatically. Save a Dart file and press `r` in this terminal to hot reload.
+The `pwd` output should end in `/varsity-project/SkillConnect/mobile`. If
+Chrome does not open automatically, visit <http://localhost:8080>.
+`flutter pub get` installs Flutter dependencies; rerun it when those
+dependencies change. Keep Terminal 2 open while coding. Save a Dart file and
+press `r` in Terminal 2 for **hot reload**, or `R` for **hot restart**.
 
-If you see **“No pubspec.yaml file found,”** run `cd mobile` before the Flutter
-command. If the app says **“Cannot reach SkillConnect,”** check that Terminal 1
-is still running and that the backend health URL opens in Chrome.
+The browser app uses the backend at `http://localhost:8000/api/`. Both
+terminals must stay running for features such as registration and sign-in.
 
-A service marketplace with a **Flutter/Dart frontend and JavaScript backend**.
-Customers discover professionals, compare work, request quotations, book services,
-message and review completed work. Professionals manage profiles, appointments
-and service/area promotions. Staff use the Node.js administration console.
+### Common problems
 
-The latest live Android build is `dist/SkillConnect-v2.1.0.apk`. Both roles can
-sign in by email or username and opt in to saved email/password suggestions.
-Providers start in My business, select their services and areas, and can edit
-portfolio projects. See the [role audit and release checks](docs/ROLE_AUDIT_2_1_0.md).
+| Message or symptom | What to check |
+| --- | --- |
+| `No pubspec.yaml file found` | Run `cd mobile` from `SkillConnect`, then run the Flutter command again. |
+| `Cannot reach SkillConnect` | Make sure `npm run dev` is still running in Terminal 1. Open <http://localhost:8000/api/health/> to check it. |
+| `cd SkillConnect: no such file or directory` | You may already be inside `SkillConnect`. Run `pwd` and look for `package.json` in the current folder. |
+| Chrome does not launch | Check that Chrome is installed and run `flutter doctor` for Flutter setup advice. |
 
-## Stack
+## Run on Android instead of Chrome
 
-- Flutter/Dart for Android, iOS and web.
-- Node.js 22.13+ and Express 5, with JavaScript ES modules.
-- PostgreSQL for deployment; built-in Node SQLite for local development.
-- JWT access/refresh sessions, scrypt password hashing, role/participant permissions.
-- Optional SMTP, Firebase Cloud Messaging and SSLCommerz hosted checkout.
-
-## Run locally
-
-Install Node.js 22.13+ and a stable Flutter SDK compatible with the mobile manifest.
+Start the backend as shown above. Start an Android emulator, then run this from
+`SkillConnect/mobile`:
 
 ```sh
-npm ci
-npm run migrate
-# For a fresh database; existing accounts are preserved:
-DEMO_PASSWORD='choose-a-strong-example-password' npm run seed
-npm run dev
+flutter run --dart-define=ALLOW_HTTP=true --dart-define=API_URL=http://10.0.2.2:8000/api/
 ```
 
-The API runs on **http://localhost:8000/api/** and listens on all local network
-interfaces by default. Node commands load an optional root `.env` automatically.
-Copy `.env.example` and edit it for your environment.
+`10.0.2.2` is how the Android emulator reaches the backend on your computer.
+For a physical phone on the same Wi-Fi, use your computer's Wi-Fi address in
+the app's server settings. See [Android sharing](docs/ANDROID_SHARING.md).
 
-Create a staff account:
+## Optional setup
+
+### Add sample accounts and data
+
+From `SkillConnect`, run the following in a separate terminal. Choose your own
+sample password:
+
+```sh
+DEMO_PASSWORD='choose-a-strong-example-password' npm run seed
+```
+
+Seeding preserves existing accounts. The separate
+[offline demo APK](dist/SkillConnect-demo-v1.2.1.apk) works without a backend;
+see the [faculty walkthrough](docs/FACULTY_DEMO.md).
+
+### Create a staff account
+
+From `SkillConnect`, run:
 
 ```sh
 ADMIN_USERNAME=admin ADMIN_EMAIL=admin@example.com \
 ADMIN_PASSWORD='choose-a-strong-admin-password' npm run admin
 ```
 
-Sign in at **http://localhost:8000/admin/**. The staff console manages account
-activation, professional verification, categories, areas, review visibility,
-promotion packages/payments and reports, and shows bookings and metrics.
+Then sign in at <http://localhost:8000/admin/>. Staff can manage accounts,
+verification, categories, areas, reviews, promotions, and reports.
 
-Run Flutter in another terminal:
+### Configure the backend
 
-```sh
-cd mobile
-flutter pub get
-flutter run -d chrome --web-port=8080 --dart-define=ALLOW_HTTP=true
-# Android emulator:
-flutter run --dart-define=ALLOW_HTTP=true --dart-define=API_URL=http://10.0.2.2:8000/api/
-```
+The local backend uses a SQLite database, so PostgreSQL is not required for
+local development. For custom settings, copy `.env.example` to `.env` in
+`SkillConnect` and edit it. The Node commands load that file automatically.
 
-For a phone on the same Wi-Fi, use the computer's Wi-Fi address in the app's
-server settings. Keep the Node server running. See [Android sharing](docs/ANDROID_SHARING.md).
+## Project layout
 
-## Offline faculty demo
+| Path | Purpose |
+| --- | --- |
+| `mobile/` | Flutter app for Android, iOS, and web |
+| `backend/` | Node.js and Express API, admin page, and database code |
+| `docs/` | API, setup, deployment, and project documentation |
+| `dist/` | Built Android APKs |
 
-Install `dist/SkillConnect-demo-v1.2.1.apk` to explore the Flutter app without
-hosting. Sample changes stay on the phone. Account → Switch demo account provides
-Customer and Professional accounts. See [faculty walkthrough](docs/FACULTY_DEMO.md).
-The frontend API is compatible with the new JavaScript backend.
+The current live Android build is `dist/SkillConnect-v2.1.0.apk`. See the
+[role audit and release checks](docs/ROLE_AUDIT_2_1_0.md) for what it covers.
 
-## Database import
+## Checks for contributors
 
-The migration imported this workspace's existing local accounts, profiles,
-bookings, reviews and catalogue into `backend/data/skillconnect.sqlite3`.
-A read-only backup is kept at `backend/data/legacy.sqlite3`. Existing passwords
-continue to work; sign in again because old sessions were retired.
-
-For another existing installation, import its old SQLite backup into an empty
-new database before seeding:
-
-```sh
-npm run import-legacy -w backend -- /absolute/path/to/backup.sqlite3
-```
-
-The import uses Node.js only and refuses to overwrite an existing target database.
-Back up the database and media before running it. See [migration notes](docs/JAVASCRIPT_MIGRATION.md).
-
-## PostgreSQL / Docker
-
-```sh
-cp .env.example .env
-# Set a random JWT_SECRET, strong POSTGRES_PASSWORD and production settings.
-docker compose up --build -d
-```
-
-The API creates its schema on startup. Pass admin/seed credentials explicitly
-when running the corresponding commands inside the container:
-
-```sh
-docker compose exec -e ADMIN_USERNAME=admin -e ADMIN_EMAIL=admin@example.com \
-  -e ADMIN_PASSWORD='choose-a-strong-admin-password' api node src/commands.js admin
-docker compose exec -e DEMO_PASSWORD='choose-a-strong-example-password' \
-  api node src/commands.js seed
-```
-
-Production requires PostgreSQL, a strong JWT secret, exact host/origin settings
-and HTTPS from a trusted reverse proxy. Store media on a persistent volume or
-object storage; the Node server serves its configured media directory.
-Back up both PostgreSQL and media. Use your own Android signing key for distribution.
-
-## Render hosting
-
-The root [Render Blueprint](render.yaml) deploys the Node.js API and PostgreSQL
-without sample accounts. See [Render deployment](docs/RENDER_DEPLOYMENT.md) for
-account connection, phone setup, database initialization and free-plan limits.
-Once hosted, the phone uses the HTTPS API without the computer staying on.
-
-## Integrations
-
-Email codes print only in local console mode; set `EMAIL_MODE=smtp` and SMTP
-credentials for delivery. Configure Firebase credentials and run
-`npm run push-worker` for native push. Run one worker; retries are tracked per
-device and delivery is at least once. Configure merchant credentials and HTTPS
-callbacks to enable SSLCommerz. Manual promotion payment confirmation remains
-available. Live provider/device checks still require your own credentials.
-
-## Validate
+Run backend checks from `SkillConnect`:
 
 ```sh
 npm run check
 npm test
-make check-mobile test-mobile
 ```
 
-Backend tests exercise real HTTP endpoints with SQLite. CI repeats them against
-PostgreSQL. They cover auth/session revocation, permissions, request lifecycles,
-concurrent booking/refresh protection, uploads, moderation, payments, push and
-legacy data import. Provider transports are mocked in tests.
+Run Flutter checks from `SkillConnect/mobile`:
 
-See [API](docs/API.md), [project structure](docs/PROJECT_STRUCTURE.md),
-[proposal coverage](docs/PROPOSAL_COVERAGE.md) and [Sprint 1 planning](docs/sprint-1/README.md).
-Run `make help` for development commands.
+```sh
+flutter analyze
+flutter test
+```
+
+## Deployment and further reading
+
+Local development uses SQLite. Deployment can use PostgreSQL with
+[Docker Compose](compose.yaml) or the [Render Blueprint](render.yaml). Follow
+the [Render deployment guide](docs/RENDER_DEPLOYMENT.md) for hosting steps and
+free plan limits. Production also needs a strong JWT secret, HTTPS, persistent
+database and media storage, and your own Android signing key.
+
+If you are importing an older SQLite database, follow the
+[migration notes](docs/JAVASCRIPT_MIGRATION.md) before seeding. For email,
+push notifications, and payments, configure the corresponding credentials;
+local email codes appear in the backend terminal by default.
+
+More detail: [API](docs/API.md),
+[project structure](docs/PROJECT_STRUCTURE.md),
+[proposal coverage](docs/PROPOSAL_COVERAGE.md), and
+[Sprint 1 planning](docs/sprint-1/README.md). Run `make help` to list
+development commands.
