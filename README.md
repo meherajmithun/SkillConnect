@@ -2,6 +2,46 @@
 
 **Find skills. Connect locally. Grow your business.**
 
+## Run on localhost (VS Code + Chrome)
+
+You need **Node.js 22.13+**, **Flutter**, and **Chrome** installed. Open the
+`SkillConnect` folder in VS Code, then open **two terminals** (Terminal → New
+Terminal). The backend and frontend must both stay running.
+
+**Terminal 1 — backend.** If your terminal starts in `varsity-project`, run:
+
+```sh
+cd SkillConnect
+pwd
+npm ci
+npm run migrate
+npm run dev
+```
+
+`pwd` should end in `/varsity-project/SkillConnect`. Run `npm ci` and
+`npm run migrate` the first time you set up the project; on later starts,
+`npm run dev` is enough. Keep this terminal open. Check the backend at
+<http://localhost:8000/api/health/>.
+
+**Terminal 2 — Flutter frontend.** Open another terminal in VS Code. If it
+starts in `SkillConnect`, run:
+
+```sh
+cd mobile
+pwd
+flutter pub get
+flutter run -d chrome --web-port=8080 --dart-define=ALLOW_HTTP=true
+```
+
+`pwd` should end in `/varsity-project/SkillConnect/mobile`, where
+`pubspec.yaml` lives. Run `flutter pub get` on first setup or after changing
+Flutter dependencies. Open <http://localhost:8080> if Chrome does not open
+automatically. Save a Dart file and press `r` in this terminal to hot reload.
+
+If you see **“No pubspec.yaml file found,”** run `cd mobile` before the Flutter
+command. If the app says **“Cannot reach SkillConnect,”** check that Terminal 1
+is still running and that the backend health URL opens in Chrome.
+
 A service marketplace with a **Flutter/Dart frontend and JavaScript backend**.
 Customers discover professionals, compare work, request quotations, book services,
 message and review completed work. Professionals manage profiles, appointments
