@@ -61,77 +61,96 @@ class BrandIcon extends StatelessWidget {
   );
 }
 
-ThemeData appTheme() => ThemeData(
-  useMaterial3: true,
-  colorScheme: ColorScheme.fromSeed(
-    seedColor: blue,
-    primary: blue,
-    secondary: teal,
-    surface: Colors.white,
-  ),
-  scaffoldBackgroundColor: mist,
-  fontFamily: 'sans-serif',
-  textTheme: const TextTheme(
-    headlineLarge: TextStyle(
-      fontSize: 38,
-      fontWeight: FontWeight.w800,
-      color: ink,
-      height: 1.1,
-      letterSpacing: -1.5,
+ThemeData appTheme({Brightness brightness = Brightness.light}) {
+  final dark = brightness == Brightness.dark;
+  final scheme = ColorScheme.fromSeed(
+    seedColor: dark ? const Color(0xFF8EAEFF) : blue,
+    brightness: brightness,
+    primary: dark ? const Color(0xFFADC6FF) : blue,
+    secondary: dark ? const Color(0xFF70D8CC) : teal,
+    surface: dark ? const Color(0xFF142231) : Colors.white,
+  );
+  final background = dark ? const Color(0xFF0C1722) : mist;
+  final outline = dark
+      ? const Color(0xFF405267)
+      : const Color(0xFFD5DFEC);
+
+  return ThemeData(
+    useMaterial3: true,
+    brightness: brightness,
+    colorScheme: scheme,
+    scaffoldBackgroundColor: background,
+    fontFamily: 'sans-serif',
+    textTheme: TextTheme(
+      headlineLarge: TextStyle(
+        fontSize: 38,
+        fontWeight: FontWeight.w800,
+        color: scheme.onSurface,
+        height: 1.1,
+        letterSpacing: -1.5,
+      ),
+      headlineMedium: TextStyle(
+        fontSize: 28,
+        fontWeight: FontWeight.w800,
+        color: scheme.onSurface,
+        letterSpacing: -.7,
+      ),
+      titleLarge: TextStyle(
+        fontSize: 22,
+        fontWeight: FontWeight.w700,
+        color: scheme.onSurface,
+      ),
+      titleMedium: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w700,
+        color: scheme.onSurface,
+      ),
+      bodyLarge: TextStyle(
+        fontSize: 16,
+        color: scheme.onSurface,
+        height: 1.5,
+      ),
+      bodyMedium: TextStyle(
+        fontSize: 14,
+        color: scheme.onSurface,
+        height: 1.4,
+      ),
     ),
-    headlineMedium: TextStyle(
-      fontSize: 28,
-      fontWeight: FontWeight.w800,
-      color: ink,
-      letterSpacing: -.7,
+    appBarTheme: AppBarTheme(
+      backgroundColor: background,
+      foregroundColor: scheme.onSurface,
+      centerTitle: false,
     ),
-    titleLarge: TextStyle(
-      fontSize: 22,
-      fontWeight: FontWeight.w700,
-      color: ink,
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: scheme.surface,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: outline),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: outline),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 17),
     ),
-    titleMedium: TextStyle(
-      fontSize: 16,
-      fontWeight: FontWeight.w700,
-      color: ink,
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        minimumSize: const Size(44, 48),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
     ),
-    bodyLarge: TextStyle(fontSize: 16, color: ink, height: 1.5),
-    bodyMedium: TextStyle(fontSize: 14, color: ink, height: 1.4),
-  ),
-  appBarTheme: const AppBarTheme(
-    backgroundColor: mist,
-    foregroundColor: ink,
-    centerTitle: false,
-  ),
-  inputDecorationTheme: InputDecorationTheme(
-    filled: true,
-    fillColor: Colors.white,
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: Color(0xFFD5DFEC)),
+    cardTheme: CardThemeData(
+      elevation: 0,
+      color: scheme.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: scheme.outlineVariant),
+      ),
     ),
-    enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: Color(0xFFD5DFEC)),
-    ),
-    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 17),
-  ),
-  filledButtonTheme: FilledButtonThemeData(
-    style: FilledButton.styleFrom(
-      minimumSize: const Size(44, 48),
-      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    ),
-  ),
-  cardTheme: CardThemeData(
-    elevation: 0,
-    color: Colors.white,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(20),
-      side: const BorderSide(color: Color(0xFFE0E7F0)),
-    ),
-  ),
-);
+  );
+}
 
 IconData serviceIcon(String? name) => switch (name) {
   'plumbing' => Icons.plumbing_rounded,
@@ -200,7 +219,12 @@ class SectionTitle extends StatelessWidget {
         Text(title, style: Theme.of(context).textTheme.titleLarge),
         if (subtitle != null) ...[
           const Gap(4),
-          Text(subtitle!, style: const TextStyle(color: Color(0xFF61758C))),
+          Text(
+            subtitle!,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
         ],
       ],
     ),
@@ -213,32 +237,45 @@ class Tag extends StatelessWidget {
   final IconData? icon;
   const Tag(this.text, {super.key, this.color = teal, this.icon});
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-    decoration: BoxDecoration(
-      color: color.withValues(alpha: .09),
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (icon != null) ...[
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 4),
-        ],
-        Flexible(
-          child: Text(
-            text,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final effectiveColor = theme.brightness == Brightness.dark
+        ? switch (color) {
+            ink => theme.colorScheme.onSurface,
+            blue => theme.colorScheme.primary,
+            teal => theme.colorScheme.secondary,
+            _ => color,
+          }
+        : color;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: effectiveColor.withValues(
+          alpha: theme.brightness == Brightness.dark ? .12 : .09,
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 14, color: effectiveColor),
+            const SizedBox(width: 4),
+          ],
+          Flexible(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: effectiveColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }
 
 class EmptyState extends StatelessWidget {
@@ -411,7 +448,11 @@ class ProfessionalCard extends StatelessWidget {
                         ),
                         Text(
                           categories.map((c) => c['name']).join(' · '),
-                          style: const TextStyle(color: Color(0xFF61758C)),
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ],
                     ),
@@ -457,9 +498,11 @@ class ProfessionalCard extends StatelessWidget {
                                 .join(' · '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFF61758C),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),

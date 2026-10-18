@@ -153,6 +153,35 @@ void main() {
     expect(find.text('Enter your password.'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+  testWidgets('App follows the device dark appearance', (tester) async {
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+    final api = testApi()..ready = true;
+    await tester.pumpWidget(SkillConnectApp(api: api));
+    await tester.pumpAndSettle();
+    final context = tester.element(find.byType(Scaffold).first);
+    expect(Theme.of(context).brightness, Brightness.dark);
+    expect(
+      Theme.of(context).scaffoldBackgroundColor,
+      const Color(0xFF0C1722),
+    );
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets('Appearance menu switches to dark mode and saves it', (
+    tester,
+  ) async {
+    final api = testApi()..ready = true;
+    await tester.pumpWidget(SkillConnectApp(api: api));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Appearance'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Dark mode'));
+    await tester.pumpAndSettle();
+    final context = tester.element(find.byType(Scaffold).first);
+    expect(Theme.of(context).brightness, Brightness.dark);
+    expect(await api.storage.read(key: 'theme_mode'), 'dark');
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('Quote request sends selected service and area', (tester) async {
     http.Request? sent;
     final api = testApi(

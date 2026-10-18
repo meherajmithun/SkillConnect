@@ -39,6 +39,7 @@ class Api extends ChangeNotifier {
   String? startupError;
   bool demoMode = false;
   int demoGeneration = 0;
+  String themeModePreference = 'system';
   DemoStore? _demo;
   bool get signedIn => user != null;
   bool get isProfessional => user?['role'] == 'professional';
@@ -60,6 +61,10 @@ class Api extends ChangeNotifier {
   Future<void> initialize() async {
     startupError = null;
     try {
+      final savedTheme = await storage.read(key: 'theme_mode');
+      if (const {'system', 'light', 'dark'}.contains(savedTheme)) {
+        themeModePreference = savedTheme!;
+      }
       final savedServer = await storage.read(key: 'server_url');
       final needsHostedServer =
           !const bool.fromEnvironment('ALLOW_HTTP') &&
@@ -93,6 +98,13 @@ class Api extends ChangeNotifier {
       ready = true;
       notifyListeners();
     }
+  }
+
+  Future<void> setThemeMode(String mode) async {
+    if (!const {'system', 'light', 'dark'}.contains(mode)) return;
+    themeModePreference = mode;
+    notifyListeners();
+    await storage.write(key: 'theme_mode', value: mode);
   }
 
   dynamic decode(http.Response response) {

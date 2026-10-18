@@ -385,11 +385,14 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             ],
           ),
           if (area != null)
-            const Padding(
-              padding: EdgeInsets.only(top: 10),
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
               child: Text(
                 'Distances are measured from the selected area’s center.',
-                style: TextStyle(fontSize: 12, color: Color(0xFF61758C)),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
           if (compare.isNotEmpty) ...[
@@ -611,7 +614,10 @@ class ProfessionalMap extends StatelessWidget {
             interval: 80,
             divisions: 1,
             subdivisions: 1,
-            child: const ColoredBox(color: mist, child: SizedBox.expand()),
+            child: ColoredBox(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              child: const SizedBox.expand(),
+            ),
           ),
         if (!offline)
           TileLayer(

@@ -780,8 +780,10 @@ class _PromotionScreenState extends State<PromotionScreen> {
                     width: 175,
                     child: Card(
                       color: package == p['id']
-                          ? const Color(0xFFE8F0FF)
-                          : Colors.white,
+                          ? Theme.of(
+                              context,
+                            ).colorScheme.primaryContainer
+                          : Theme.of(context).colorScheme.surface,
                       child: InkWell(
                         borderRadius: BorderRadius.circular(20),
                         onTap: () => setState(() => package = p['id']),

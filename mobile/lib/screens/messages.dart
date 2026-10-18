@@ -156,10 +156,12 @@ class _MessagesScreenState extends State<MessagesScreen>
                             decoration: BoxDecoration(
                               color: mine
                                   ? blue.withValues(alpha: .08)
-                                  : Colors.white,
+                                  : Theme.of(context).colorScheme.surface,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: const Color(0xFFE0E7F0),
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.outlineVariant,
                               ),
                             ),
                             child: Column(

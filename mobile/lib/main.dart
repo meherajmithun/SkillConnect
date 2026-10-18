@@ -23,14 +23,20 @@ class SkillConnectApp extends StatelessWidget {
   final Api api;
   const SkillConnectApp({super.key, required this.api});
   @override
-  Widget build(BuildContext context) => MaterialApp(
-    title: 'SkillConnect',
-    navigatorKey: skillConnectNavigator,
-    debugShowCheckedModeBanner: false,
-    theme: appTheme(),
-    builder: (context, child) => AnimatedBuilder(
-      animation: api,
-      builder: (context, _) => !api.demoMode
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: api,
+    builder: (context, _) => MaterialApp(
+      title: 'SkillConnect',
+      navigatorKey: skillConnectNavigator,
+      debugShowCheckedModeBanner: false,
+      theme: appTheme(),
+      darkTheme: appTheme(brightness: Brightness.dark),
+      themeMode: switch (api.themeModePreference) {
+        'light' => ThemeMode.light,
+        'dark' => ThemeMode.dark,
+        _ => ThemeMode.system,
+      },
+      builder: (context, child) => !api.demoMode
           ? child!
           : Column(
               children: [
@@ -59,10 +65,7 @@ class SkillConnectApp extends StatelessWidget {
                 Expanded(child: child!),
               ],
             ),
-    ),
-    home: AnimatedBuilder(
-      animation: api,
-      builder: (context, _) => api.ready
+      home: api.ready
           ? HomeShell(
               key: ValueKey(
                 '${api.serverUrl}:${api.demoMode}:${api.demoGeneration}:${api.user?['id']}',
@@ -173,6 +176,24 @@ class _HomeShellState extends State<HomeShell> {
           ],
         ),
         actions: [
+          PopupMenuButton<String>(
+            tooltip: 'Appearance',
+            initialValue: api.themeModePreference,
+            icon: Icon(
+              Theme.of(context).brightness == Brightness.dark
+                  ? Icons.dark_mode_outlined
+                  : Icons.light_mode_outlined,
+            ),
+            onSelected: api.setThemeMode,
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: 'system',
+                child: Text('Use device setting'),
+              ),
+              PopupMenuItem(value: 'light', child: Text('Light mode')),
+              PopupMenuItem(value: 'dark', child: Text('Dark mode')),
+            ],
+          ),
           IconButton(
             tooltip: 'Server connection',
             icon: const Icon(Icons.link_rounded),
