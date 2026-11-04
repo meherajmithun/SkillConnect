@@ -41,7 +41,7 @@ class SkillConnectApp extends StatelessWidget {
           : Column(
               children: [
                 Material(
-                  color: ink,
+                  color: const Color(0xFF142436),
                   child: SafeArea(
                     bottom: false,
                     child: Padding(
@@ -49,15 +49,24 @@ class SkillConnectApp extends StatelessWidget {
                         horizontal: 16,
                         vertical: 8,
                       ),
-                      child: const SizedBox(
-                        width: double.infinity,
-                        child: Text(
-                          'Offline demo',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
+                      child: Row(
+                        children: const [
+                          Icon(
+                            Icons.cloud_off_rounded,
+                            color: Color(0xFF92D9F7),
+                            size: 16,
                           ),
-                        ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Offline demo',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                              letterSpacing: -.2,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),

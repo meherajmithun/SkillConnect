@@ -24,8 +24,23 @@ class BusinessScreen extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(26),
             decoration: BoxDecoration(
-              color: teal,
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF065F56),
+                  Color(0xFF0A786E),
+                  Color(0xFF139A8E),
+                ],
+              ),
               borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF065F56).withValues(alpha: .28),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

@@ -470,6 +470,13 @@ class BookingCard extends StatelessWidget {
                       : ['cancelled', 'rejected'].contains(state)
                       ? Colors.grey
                       : blue,
+                  icon: state == 'completed'
+                      ? Icons.check_circle_outline_rounded
+                      : state == 'accepted'
+                      ? Icons.thumb_up_alt_outlined
+                      : ['cancelled', 'rejected'].contains(state)
+                      ? Icons.cancel_outlined
+                      : Icons.hourglass_top_rounded,
                 ),
               ],
             ),
@@ -636,6 +643,9 @@ class QuoteCard extends StatelessWidget {
                     ? 'Estimate sent'
                     : 'Quote received',
                 color: quote['amount'] == null ? blue : teal,
+                icon: quote['amount'] == null
+                    ? Icons.hourglass_top_rounded
+                    : Icons.request_quote_outlined,
               ),
             ],
           ),

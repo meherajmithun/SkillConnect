@@ -718,36 +718,77 @@ class StatsGrid extends StatelessWidget {
   final Json data;
   const StatsGrid({super.key, required this.data});
   @override
-  Widget build(BuildContext context) => Wrap(
-    spacing: 12,
-    runSpacing: 12,
-    children: [
-      for (final e in data.entries)
-        Container(
-          width: 150,
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Theme.of(context).colorScheme.outlineVariant,
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: [
+        for (final e in data.entries)
+          Container(
+            width: 150,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: dark ? const Color(0xFF1E2F48) : const Color(0xFFE2E8F0),
+              ),
+              boxShadow: [
+                if (!dark)
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: .03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        e.value is num
+                            ? (e.value is double
+                                  ? (e.value as double).toStringAsFixed(1)
+                                  : '${e.value}')
+                            : '${e.value}',
+                        style: Theme.of(context).textTheme.headlineMedium!.copyWith(
+                          letterSpacing: -.5,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      switch (e.key) {
+                        'rating' => Icons.star_rounded,
+                        'total_bookings' || 'bookings' => Icons.event_available_rounded,
+                        'views' || 'profile_views' => Icons.visibility_outlined,
+                        'quotes' || 'active_quotes' => Icons.chat_bubble_outline_rounded,
+                        _ => Icons.analytics_outlined,
+                      },
+                      size: 20,
+                      color: e.key == 'rating'
+                          ? const Color(0xFFF59E0B)
+                          : (dark ? const Color(0xFFADC6FF) : blue),
+                    ),
+                  ],
+                ),
+                const Gap(4),
+                Text(
+                  e.key.replaceAll('_', ' '),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                e.value is num
-                    ? (e.value is double
-                          ? (e.value as double).toStringAsFixed(1)
-                          : '${e.value}')
-                    : '${e.value}',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              Text(e.key.replaceAll('_', ' ')),
-            ],
-          ),
-        ),
-    ],
-  );
+      ],
+    );
+  }
 }

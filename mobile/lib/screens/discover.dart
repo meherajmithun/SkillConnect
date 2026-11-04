@@ -98,8 +98,23 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(28),
             decoration: BoxDecoration(
-              color: ink,
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF0C192C),
+                  Color(0xFF132A4B),
+                  Color(0xFF1A3963),
+                ],
+              ),
               borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0C192C).withValues(alpha: .28),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
             child: LayoutBuilder(
               builder: (context, constraints) => Row(
@@ -159,6 +174,28 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                     ),
                 ],
               ),
+            ),
+          ),
+          const Gap(16),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final (icon, title, desc, color) in [
+                  (Icons.verified_user_outlined, 'Verified Experts', 'Screened local pros', const Color(0xFF38BDF8)),
+                  (Icons.receipt_long_outlined, 'Upfront Pricing', 'Transparent estimates', const Color(0xFF34D399)),
+                  (Icons.chat_bubble_outline_rounded, 'Direct Chat', 'Message securely', const Color(0xFFF59E0B)),
+                ])
+                  Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: _FeatureBadge(
+                      icon: icon,
+                      title: title,
+                      subtitle: desc,
+                      accentColor: color,
+                    ),
+                  ),
+              ],
             ),
           ),
           if (!connected) ...[
@@ -546,6 +583,64 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
   );
 }
 
+class _FeatureBadge extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color accentColor;
+  const _FeatureBadge({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.accentColor,
+  });
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: dark ? const Color(0xFF1E2F48) : const Color(0xFFE2E8F0),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: dark ? .16 : .1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: accentColor, size: 20),
+          ),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+              ),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ConnectionTile extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -557,20 +652,31 @@ class _ConnectionTile extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(14),
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     decoration: BoxDecoration(
-      color: color.withValues(alpha: .1),
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: color.withValues(alpha: .25)),
+      color: Colors.white.withValues(alpha: .08),
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: color.withValues(alpha: .35), width: 1.2),
     ),
     child: Row(
       children: [
-        Icon(icon, color: color),
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: .18),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
             label,
-            style: TextStyle(color: color, fontWeight: FontWeight.w700),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+            ),
           ),
         ),
       ],
@@ -683,20 +789,45 @@ class ProfileScreen extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
-                color: ink,
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF0C192C),
+                    Color(0xFF132A4B),
+                    Color(0xFF1A3963),
+                  ],
+                ),
                 borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF0C192C).withValues(alpha: .24),
+                    blurRadius: 18,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    serviceIcon(
-                      categories.isEmpty ? null : categories.first['icon'],
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: .1),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFF92D9F7).withValues(alpha: .3),
+                      ),
                     ),
-                    size: 42,
-                    color: const Color(0xFF92D9F7),
+                    child: Icon(
+                      serviceIcon(
+                        categories.isEmpty ? null : categories.first['icon'],
+                      ),
+                      size: 38,
+                      color: const Color(0xFF92D9F7),
+                    ),
                   ),
-                  const Gap(),
+                  const Gap(16),
                   Text(
                     p['business_name'],
                     style: Theme.of(context).textTheme.headlineMedium!
@@ -705,9 +836,9 @@ class ProfileScreen extends StatelessWidget {
                   const Gap(8),
                   Text(
                     '${p['name']} · ${p['experience_years']} years of experience',
-                    style: const TextStyle(color: Color(0xFFC9D9EB)),
+                    style: const TextStyle(color: Color(0xFFC9D9EB), fontSize: 15),
                   ),
-                  const Gap(),
+                  const Gap(14),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,

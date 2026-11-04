@@ -143,12 +143,12 @@ navigation bar. Actions remain reachable on small screens and with long content.
 DISCOVER                         RESULTS
 ┌───────────────────────────┐    ┌───────────────────────────┐
 │ SkillConnect              │    │ ← Discover                │
-│ A little help.             │    │ Electrician / Mirpur      │
+│ A little help.            │    │ Electrician / Mirpur      │
 │ Right around here.        │    │ Results count             │
 │                           │    │ ┌───────────────────────┐ │
 │ Service [Electrician   v] │    │ │ Name • verified       │ │
 │ Area    [Mirpur        v] │    │ │ Skill / service area  │ │
-│ Search  [             ]  │    │ │ Rating • starting BDT │ │
+│ Search  [             ]   │    │ │ Rating • starting BDT │ │
 │ [Find professionals]      │    │ │ [View profile]        │ │
 │                           │    │ └───────────────────────┘ │
 │ Local professional sample │    │ [Change filters]          │

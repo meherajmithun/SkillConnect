@@ -86,24 +86,26 @@ ThemeData appTheme({Brightness brightness = Brightness.light}) {
         fontSize: 38,
         fontWeight: FontWeight.w800,
         color: scheme.onSurface,
-        height: 1.1,
+        height: 1.15,
         letterSpacing: -1.5,
       ),
       headlineMedium: TextStyle(
         fontSize: 28,
         fontWeight: FontWeight.w800,
         color: scheme.onSurface,
-        letterSpacing: -.7,
+        letterSpacing: -.8,
       ),
       titleLarge: TextStyle(
         fontSize: 22,
         fontWeight: FontWeight.w700,
         color: scheme.onSurface,
+        letterSpacing: -.4,
       ),
       titleMedium: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w700,
         color: scheme.onSurface,
+        letterSpacing: -.2,
       ),
       bodyLarge: TextStyle(
         fontSize: 16,
@@ -113,41 +115,72 @@ ThemeData appTheme({Brightness brightness = Brightness.light}) {
       bodyMedium: TextStyle(
         fontSize: 14,
         color: scheme.onSurface,
-        height: 1.4,
+        height: 1.45,
       ),
     ),
     appBarTheme: AppBarTheme(
       backgroundColor: background,
       foregroundColor: scheme.onSurface,
       centerTitle: false,
+      elevation: 0,
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: scheme.surface,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide(color: outline),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide(color: outline),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 17),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(
+          color: dark ? const Color(0xFFADC6FF) : blue,
+          width: 1.8,
+        ),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         minimumSize: const Size(44, 48),
         padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        textStyle: const TextStyle(fontWeight: FontWeight.w700),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size(44, 48),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        side: BorderSide(color: outline),
+        textStyle: const TextStyle(fontWeight: FontWeight.w700),
       ),
     ),
     cardTheme: CardThemeData(
-      elevation: 0,
+      elevation: dark ? 0 : 1,
+      shadowColor: Colors.black.withValues(alpha: .04),
       color: scheme.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: scheme.outlineVariant),
+        side: BorderSide(
+          color: dark ? const Color(0xFF1E2F48) : const Color(0xFFE2E8F0),
+          width: 1,
+        ),
       ),
+    ),
+    chipTheme: ChipThemeData(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      side: BorderSide(color: outline),
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      elevation: 0,
+      backgroundColor: dark ? const Color(0xFF0F1B2B) : Colors.white,
+      indicatorColor: (dark ? const Color(0xFFADC6FF) : blue).withValues(alpha: .18),
     ),
   );
 }
@@ -211,24 +244,47 @@ class SectionTitle extends StatelessWidget {
   final String? subtitle;
   const SectionTitle(this.title, {super.key, this.subtitle});
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 10, bottom: 16),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: Theme.of(context).textTheme.titleLarge),
-        if (subtitle != null) ...[
-          const Gap(4),
-          Text(
-            subtitle!,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.only(top: 12, bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 4,
+                height: 20,
+                margin: const EdgeInsets.only(right: 10),
+                decoration: BoxDecoration(
+                  color: dark ? const Color(0xFFADC6FF) : blue,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Expanded(
+                child: Text(title, style: Theme.of(context).textTheme.titleLarge),
+              ),
+            ],
           ),
+          if (subtitle != null) ...[
+            const Gap(5),
+            Padding(
+              padding: const EdgeInsets.only(left: 14),
+              child: Text(
+                subtitle!,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
         ],
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }
 
 class Tag extends StatelessWidget {
@@ -239,7 +295,8 @@ class Tag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final effectiveColor = theme.brightness == Brightness.dark
+    final dark = theme.brightness == Brightness.dark;
+    final effectiveColor = dark
         ? switch (color) {
             ink => theme.colorScheme.onSurface,
             blue => theme.colorScheme.primary,
@@ -247,19 +304,30 @@ class Tag extends StatelessWidget {
             _ => color,
           }
         : color;
+    final isStar = icon == Icons.star_rounded || icon == Icons.star;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: effectiveColor.withValues(
-          alpha: theme.brightness == Brightness.dark ? .12 : .09,
+          alpha: dark ? .14 : .09,
         ),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: effectiveColor.withValues(
+            alpha: dark ? .30 : .20,
+          ),
+          width: 1,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 14, color: effectiveColor),
+            Icon(
+              icon,
+              size: 14,
+              color: isStar ? const Color(0xFFF59E0B) : effectiveColor,
+            ),
             const SizedBox(width: 4),
           ],
           Flexible(
@@ -269,6 +337,7 @@ class Tag extends StatelessWidget {
                 color: effectiveColor,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
+                letterSpacing: -.1,
               ),
             ),
           ),
@@ -288,20 +357,56 @@ class EmptyState extends StatelessWidget {
     this.icon = Icons.search_rounded,
   });
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 32),
-    child: Center(
-      child: Column(
-        children: [
-          Icon(icon, color: blue, size: 48),
-          const Gap(),
-          Text(title, style: Theme.of(context).textTheme.titleLarge),
-          const Gap(8),
-          Text(message, textAlign: TextAlign.center),
-        ],
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 16),
+      child: Center(
+        child: Column(
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    blue.withValues(alpha: dark ? .24 : .12),
+                    blue.withValues(alpha: 0),
+                  ],
+                ),
+                border: Border.all(
+                  color: blue.withValues(alpha: dark ? .35 : .18),
+                  width: 1.5,
+                ),
+              ),
+              child: Center(
+                child: Icon(
+                  icon,
+                  color: dark ? const Color(0xFFADC6FF) : blue,
+                  size: 36,
+                ),
+              ),
+            ),
+            const Gap(16),
+            Text(
+              title,
+              style: Theme.of(context).textTheme.titleLarge,
+              textAlign: TextAlign.center,
+            ),
+            const Gap(8),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class LoadView<T> extends StatefulWidget {
@@ -409,6 +514,9 @@ class ProfessionalCard extends StatelessWidget {
     final categories = profile['categories'] as List;
     final name = '${profile['business_name']}';
     final rating = (profile['rating'] as num?)?.toStringAsFixed(1) ?? 'New';
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = dark ? const Color(0xFFADC6FF) : blue;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 14),
       child: InkWell(
@@ -426,14 +534,25 @@ class ProfessionalCard extends StatelessWidget {
                     width: 54,
                     height: 54,
                     decoration: BoxDecoration(
-                      color: blue.withValues(alpha: .09),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          blue.withValues(alpha: dark ? .24 : .12),
+                          teal.withValues(alpha: dark ? .18 : .08),
+                        ],
+                      ),
                       borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: blue.withValues(alpha: dark ? .35 : .18),
+                        width: 1.2,
+                      ),
                     ),
                     child: Icon(
                       serviceIcon(
                         categories.isEmpty ? null : categories.first['icon'],
                       ),
-                      color: blue,
+                      color: primaryColor,
                       size: 28,
                     ),
                   ),
@@ -446,12 +565,14 @@ class ProfessionalCard extends StatelessWidget {
                           name,
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
+                        const SizedBox(height: 2),
                         Text(
                           categories.map((c) => c['name']).join(' · '),
                           style: TextStyle(
                             color: Theme.of(
                               context,
                             ).colorScheme.onSurfaceVariant,
+                            fontSize: 13,
                           ),
                         ),
                       ],
@@ -465,6 +586,7 @@ class ProfessionalCard extends StatelessWidget {
                 '${profile['bio']}',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
+                style: const TextStyle(height: 1.45),
               ),
               const Gap(14),
               Wrap(
@@ -489,6 +611,12 @@ class ProfessionalCard extends StatelessWidget {
               const Gap(14),
               Row(
                 children: [
+                  Icon(
+                    Icons.location_on_outlined,
+                    size: 15,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       profile['distance_km'] != null
@@ -506,9 +634,23 @@ class ProfessionalCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  Text(
-                    'From ${money(profile['starting_price'])}',
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: primaryColor.withValues(alpha: dark ? .16 : .08),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: primaryColor.withValues(alpha: dark ? .28 : .16),
+                      ),
+                    ),
+                    child: Text(
+                      'From ${money(profile['starting_price'])}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                        color: primaryColor,
+                      ),
+                    ),
                   ),
                 ],
               ),
