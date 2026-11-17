@@ -433,6 +433,117 @@ class BookingCard extends StatelessWidget {
     required this.booking,
     required this.reload,
   });
+
+  Future<Json?> _chooseNewTime(BuildContext context) async {
+    if (booking['schedule_enabled'] == true) {
+      try {
+        final availability = await api.get(
+          'professionals/${booking['professional']}/availability/',
+        ) as Json;
+        final slots = (availability['slots'] as List).cast<Json>();
+        if (slots.isEmpty) {
+          if (context.mounted) {
+            showMessage(
+              context,
+              'There are no available appointments to choose.',
+            );
+          }
+          return null;
+        }
+        if (!context.mounted) return null;
+        return showDialog<Json>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Choose a new appointment'),
+            content: SizedBox(
+              width: 420,
+              height: 320,
+              child: ListView(
+                children: [
+                  for (final slot in slots)
+                    ListTile(
+                      leading: const Icon(Icons.calendar_month_outlined),
+                      title: Text(dateLabel(slot['starts_at'])),
+                      subtitle: Text('Until ${dateLabel(slot['ends_at'])}'),
+                      onTap: () => Navigator.pop(dialogContext, {
+                        'scheduled_at': slot['starts_at'],
+                        'slot': slot['id'],
+                      }),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+            ],
+          ),
+        );
+      } catch (error) {
+        if (context.mounted) showMessage(context, '$error');
+        return null;
+      }
+    }
+
+    final now = DateTime.now();
+    final day = await showDatePicker(
+      context: context,
+      initialDate: now.add(const Duration(days: 1)),
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 90)),
+    );
+    if (day == null || !context.mounted) return null;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: const TimeOfDay(hour: 10, minute: 0),
+    );
+    if (time == null || !context.mounted) return null;
+    final start = DateTime(day.year, day.month, day.day, time.hour, time.minute);
+    if (!start.isAfter(DateTime.now())) {
+      showMessage(context, 'Choose a future appointment time.');
+      return null;
+    }
+    return {'scheduled_at': start.toUtc().toIso8601String()};
+  }
+
+  Future<void> _suggestNewTime(BuildContext context) async {
+    final choice = await _chooseNewTime(context);
+    if (choice == null || !context.mounted) return;
+    try {
+      await api.post('bookings/${booking['id']}/reschedule/', choice);
+      reload();
+    } catch (error) {
+      if (context.mounted) showMessage(context, '$error');
+    }
+  }
+
+  Future<void> _respondToTime(
+    BuildContext context,
+    Json request,
+    String action,
+  ) async {
+    try {
+      await api.post('bookings/${booking['id']}/reschedule/respond/', {
+        'request_id': request['id'],
+        'action': action,
+      });
+      reload();
+    } catch (error) {
+      if (context.mounted) showMessage(context, '$error');
+    }
+  }
+
+  Future<void> _withdrawTime(BuildContext context) async {
+    try {
+      await api.delete('bookings/${booking['id']}/reschedule/');
+      reload();
+    } catch (error) {
+      if (context.mounted) showMessage(context, '$error');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final b = booking;
@@ -493,6 +604,66 @@ class BookingCard extends StatelessWidget {
             Text(b['address']),
             const Gap(12),
             Text(b['details']),
+            if (state == 'accepted') ...[
+              const Gap(12),
+              if (b['reschedule_request'] != null) ...[
+                Builder(
+                  builder: (context) {
+                    final request = b['reschedule_request'] as Json;
+                    final mine = request['requested_by'] ==
+                        (api.isProfessional ? 'professional' : 'customer');
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Suggested time: ${dateLabel(request['scheduled_at'])}',
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                        Text(
+                          mine
+                              ? 'Waiting for the other person to reply.'
+                              : 'The other person is asking to change the time.',
+                        ),
+                        const Gap(8),
+                        Wrap(
+                          spacing: 8,
+                          children: mine
+                              ? [
+                                  OutlinedButton(
+                                    onPressed: () => _withdrawTime(context),
+                                    child: const Text('Withdraw suggestion'),
+                                  ),
+                                ]
+                              : [
+                                  FilledButton(
+                                    onPressed: () => _respondToTime(
+                                      context,
+                                      request,
+                                      'accept',
+                                    ),
+                                    child: const Text('Accept new time'),
+                                  ),
+                                  OutlinedButton(
+                                    onPressed: () => _respondToTime(
+                                      context,
+                                      request,
+                                      'decline',
+                                    ),
+                                    child: const Text('Decline'),
+                                  ),
+                                ],
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ] else
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.edit_calendar_outlined),
+                  label: const Text('Suggest a new time'),
+                  onPressed: () => _suggestNewTime(context),
+                ),
+            ],
             const Gap(),
             Wrap(
               spacing: 10,

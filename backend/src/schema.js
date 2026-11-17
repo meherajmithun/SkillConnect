@@ -52,6 +52,19 @@ export function schema(postgres) {
       status TEXT NOT NULL CHECK(status IN ('pending','accepted','rejected','completed','cancelled')), created_at TEXT NOT NULL, updated_at TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS booking_schedule ON bookings(professional_id, status, scheduled_at);
+    CREATE TABLE IF NOT EXISTS booking_reschedule_requests (
+      id ${id}, booking_id INTEGER NOT NULL REFERENCES bookings(id),
+      requested_by INTEGER NOT NULL REFERENCES users(id), scheduled_at TEXT NOT NULL,
+      slot_id INTEGER REFERENCES slots(id),
+      status TEXT NOT NULL CHECK(status IN ('pending','accepted','declined','cancelled')),
+      created_at TEXT NOT NULL, responded_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS booking_reschedule_pending ON booking_reschedule_requests(booking_id,status,id);
+    CREATE TABLE IF NOT EXISTS booking_reminders (
+      id ${id}, booking_id INTEGER NOT NULL REFERENCES bookings(id), scheduled_at TEXT NOT NULL,
+      reminder_type TEXT NOT NULL CHECK(reminder_type IN ('day','hour')), created_at TEXT NOT NULL,
+      UNIQUE(booking_id,scheduled_at,reminder_type)
+    );
     CREATE TABLE IF NOT EXISTS reviews (
       id ${id}, booking_id INTEGER NOT NULL UNIQUE REFERENCES bookings(id), rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5),
       comment TEXT NOT NULL, visible INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL

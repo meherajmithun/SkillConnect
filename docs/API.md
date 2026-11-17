@@ -28,6 +28,8 @@ Base path: `/api/`. JSON requests and responses except portfolio image upload, w
 | `bookings/` | GET, POST | Participant-only list; customer creates a service request |
 | `bookings/{id}/` | GET | Participant-only booking detail |
 | `bookings/{id}/status/` | POST | `{status: accepted/rejected/completed/cancelled}`; role and state enforced |
+| `bookings/{id}/reschedule/` | POST, DELETE | Suggest a new time for an accepted booking, or withdraw your own pending suggestion |
+| `bookings/{id}/reschedule/respond/` | POST | The other participant accepts or declines a suggested time |
 | `quotes/` | GET, POST | Participant-only list; customer requests an estimate |
 | `quotes/{id}/` | GET | Participant-only quotation detail |
 | `quotes/{id}/reply/` | POST | Requested professional replies with positive `amount` and `response` |
@@ -72,6 +74,22 @@ Participant-only booking and quote responses include `customer_phone` and `profe
 Quotation requests use professional, category, area and details. Replies increment the quotation revision. Accept with `quote_revision`, `scheduled_at`, `duration_minutes` (default 60), `address` and optional `slot`. The backend snapshots the quotation price and terms and returns the resulting booking. Duplicate acceptance returns the same booking. Accepted estimates cannot be updated.
 
 Bookings expose `quote`, `agreed_price`, `agreed_terms`, `duration_minutes` and `slot`. Pending and accepted bookings reserve time and cannot overlap. When `schedule_enabled` is true, new bookings must match an owned published slot's start and duration. Cancelled/rejected bookings release the time. Slots last 30–480 whole minutes and may be published within 90 days.
+
+Only an upcoming accepted booking can be rescheduled. Send `scheduled_at` and,
+when the professional requires calendar slots, the available `slot` ID to
+`POST bookings/{id}/reschedule/`. The current appointment length stays the
+same. The other participant can accept or decline with
+`POST bookings/{id}/reschedule/respond/` and `{request_id, action}` where action
+is `accept` or `decline`. Accepting checks the time and slot again; a suggested
+time is not reserved until it is accepted. The booking response includes a
+`reschedule_request` while a suggestion is waiting. Either the person who made
+the suggestion can withdraw it with `DELETE bookings/{id}/reschedule/`.
+
+The API checks accepted bookings every minute and adds in-app reminders for
+both participants about one day and one hour before the appointment. If Firebase
+push is configured, the existing push worker can deliver those reminders to
+registered devices too. If the server is sleeping or stopped, a reminder may
+arrive late; reminders are skipped after the appointment time has passed.
 
 Email codes expire in 15 minutes, allow five failed attempts and are single-use. Requesting another code invalidates the prior code. Recovery endpoints use a separate IP throttle of 20 requests/hour. Email sending defaults to local console mode; set `EMAIL_MODE=smtp` to send actual messages.
 

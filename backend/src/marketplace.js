@@ -128,6 +128,28 @@ export async function bookingConflicts(db, proId, start, end, exclude = 0) {
       ).toISOString() > start,
   );
 }
+async function rescheduleDetails(db, booking, scheduledValue, slotValue) {
+  const scheduled = date(scheduledValue, "appointment");
+  if (scheduled <= timestamp()) reject("Choose a future appointment.");
+  const duration = booking.duration_minutes;
+  const end = new Date(Date.parse(scheduled) + duration * 60000).toISOString();
+  const pro = await find(db, "professionals", booking.professional_id);
+  const slotId = slotValue == null ? null : integer(slotValue, "appointment");
+  if (pro.schedule_enabled && !slotId)
+    reject("Choose a published appointment.");
+  if (slotId) {
+    const slot = await find(db, "slots", slotId);
+    if (
+      slot.professional_id !== pro.id ||
+      slot.starts_at !== scheduled ||
+      slot.ends_at !== end
+    )
+      reject("Choose a matching appointment from the professional’s calendar.");
+  }
+  if (await bookingConflicts(db, pro.id, scheduled, end, booking.id))
+    reject("This time is reserved. Choose another appointment.");
+  return { scheduled, slotId };
+}
 export async function createBooking(db, body, user, quote = null) {
   const data = await serviceRequest(db, body, user);
   const scheduled = date(body.scheduled_at, "appointment"),
@@ -211,6 +233,10 @@ export async function presentedRequest(db, kind, row) {
   const review = await db.one("SELECT * FROM reviews WHERE booking_id=?", [
     row.id,
   ]);
+  const reschedule = await db.one(
+    "SELECT * FROM booking_reschedule_requests WHERE booking_id=? AND status='pending' ORDER BY id DESC LIMIT 1",
+    [row.id],
+  );
   return {
     ...result,
     scheduled_at: row.scheduled_at,
@@ -221,6 +247,18 @@ export async function presentedRequest(db, kind, row) {
     agreed_terms: row.agreed_terms,
     address: row.address,
     status: row.status,
+    schedule_enabled: Boolean(pro.schedule_enabled),
+    reschedule_request: reschedule
+      ? {
+          id: reschedule.id,
+          requested_by:
+            reschedule.requested_by === row.customer_id
+              ? "customer"
+              : "professional",
+          scheduled_at: reschedule.scheduled_at,
+          slot: reschedule.slot_id,
+        }
+      : null,
     review: review
       ? {
           id: review.id,
@@ -726,12 +764,150 @@ export function marketplaceRoutes(app, db, config, auth) {
           status: target,
           updated_at: timestamp(),
         });
+        await tx.query(
+          "UPDATE booking_reschedule_requests SET status='cancelled',responded_at=? WHERE booking_id=? AND status='pending'",
+          [timestamp(), row.id],
+        );
         const pro = await find(tx, "professionals", row.professional_id);
         await notification(
           tx,
           isPro ? row.customer_id : pro.user_id,
           `Booking #${row.id} is ${target}.`,
         );
+        return presentedRequest(tx, "bookings", updated);
+      }),
+    ),
+  );
+  app.post("/api/bookings/:id/reschedule/", guard, async (req, res) =>
+    res.status(201).json(
+      await db.transaction(async (tx) => {
+        const { row, pro, isPro } = await participant(
+          tx,
+          "bookings",
+          req.params.id,
+          req.user,
+        );
+        if (row.status !== "accepted" || row.scheduled_at <= timestamp())
+          reject("Only an upcoming accepted booking can be rescheduled.");
+        if (
+          await tx.one(
+            "SELECT id FROM booking_reschedule_requests WHERE booking_id=? AND status='pending'",
+            [row.id],
+          )
+        )
+          reject("This booking already has a pending time suggestion.");
+        const { scheduled, slotId } = await rescheduleDetails(
+          tx,
+          row,
+          req.body.scheduled_at,
+          req.body.slot,
+        );
+        if (scheduled === row.scheduled_at)
+          reject("Choose a different appointment time.");
+        const request = await tx.insert("booking_reschedule_requests", {
+          booking_id: row.id,
+          requested_by: req.user.id,
+          scheduled_at: scheduled,
+          slot_id: slotId,
+          status: "pending",
+          created_at: timestamp(),
+        });
+        await notification(
+          tx,
+          isPro ? row.customer_id : pro.user_id,
+          `A new time was suggested for booking #${row.id}. Open Activity to review it.`,
+        );
+        return {
+          id: request.id,
+          requested_by: isPro ? "professional" : "customer",
+          scheduled_at: scheduled,
+          slot: slotId,
+        };
+      }),
+    ),
+  );
+  app.delete("/api/bookings/:id/reschedule/", guard, async (req, res) => {
+    await db.transaction(async (tx) => {
+      const { row, pro, isPro } = await participant(
+        tx,
+        "bookings",
+        req.params.id,
+        req.user,
+      );
+      const change = await tx.one(
+        "SELECT * FROM booking_reschedule_requests WHERE booking_id=? AND status='pending' ORDER BY id DESC LIMIT 1",
+        [row.id],
+      );
+      if (!change || change.requested_by !== req.user.id)
+        reject("You do not have a pending time suggestion to cancel.");
+      await tx.update("booking_reschedule_requests", change.id, {
+        status: "cancelled",
+        responded_at: timestamp(),
+      });
+      await notification(
+        tx,
+        isPro ? row.customer_id : pro.user_id,
+        `The time suggestion for booking #${row.id} was withdrawn.`,
+      );
+    });
+    res.sendStatus(204);
+  });
+  app.post("/api/bookings/:id/reschedule/respond/", guard, async (req, res) =>
+    res.json(
+      await db.transaction(async (tx) => {
+        const { row, pro } = await participant(
+          tx,
+          "bookings",
+          req.params.id,
+          req.user,
+        );
+        const requestId = integer(req.body.request_id, "time suggestion");
+        const change = await tx.one(
+          "SELECT * FROM booking_reschedule_requests WHERE id=? AND booking_id=? AND status='pending'",
+          [requestId, row.id],
+        );
+        if (!change) reject("This time suggestion is no longer available.");
+        if (change.requested_by === req.user.id)
+          reject("The person who suggested the time cannot respond to it.");
+        if (!["accept", "decline"].includes(req.body.action))
+          reject("Choose accept or decline.");
+        if (row.status !== "accepted" || row.scheduled_at <= timestamp())
+          reject("This booking can no longer be rescheduled.");
+
+        let updated = row;
+        if (req.body.action === "accept") {
+          const { scheduled, slotId } = await rescheduleDetails(
+            tx,
+            row,
+            change.scheduled_at,
+            change.slot_id,
+          );
+          updated = await tx.update("bookings", row.id, {
+            scheduled_at: scheduled,
+            slot_id: slotId,
+            updated_at: timestamp(),
+          });
+        }
+        await tx.update("booking_reschedule_requests", change.id, {
+          status: req.body.action === "accept" ? "accepted" : "declined",
+          responded_at: timestamp(),
+        });
+        const requester = change.requested_by;
+        if (req.body.action === "accept") {
+          const message = `The new time for booking #${row.id} was accepted. Open Activity to see the schedule.`;
+          await notification(tx, requester, message);
+          await notification(
+            tx,
+            req.user.id,
+            `Booking #${row.id} now has a new time. Open Activity to see the schedule.`,
+          );
+        } else {
+          await notification(
+            tx,
+            requester,
+            `The new time for booking #${row.id} was declined.`,
+          );
+        }
         return presentedRequest(tx, "bookings", updated);
       }),
     ),

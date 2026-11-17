@@ -6,7 +6,10 @@ import 'api.dart' show ApiException, Json;
 /// Local demonstration data. Never used as a fallback for live API mutations.
 class DemoStore {
   final Json state;
-  DemoStore(this.state);
+  DemoStore(this.state) {
+    state['reschedules'] ??= <Json>[];
+    state['booking_reminders'] ??= <Json>[];
+  }
   static const password = 'Demo1234!';
   static const code = '12345678';
   int? get userId => state['current_user'] as int?;
@@ -42,6 +45,8 @@ class DemoStore {
         'areas',
         'professionals',
         'bookings',
+        'reschedules',
+        'booking_reminders',
         'quotes',
         'reviews',
         'slots',
@@ -269,6 +274,31 @@ class DemoStore {
     'read': false,
     'created_at': now(),
   });
+  void deliverDemoReminders() {
+    final current = DateTime.now();
+    for (final booking in rows('bookings')) {
+      if (booking['status'] != 'accepted') continue;
+      final start = DateTime.parse(booking['scheduled_at']);
+      if (!start.isAfter(current) ||
+          start.isAfter(current.add(const Duration(hours: 24)))) {
+        continue;
+      }
+      final type = start.difference(current) <= const Duration(hours: 1)
+          ? 'hour'
+          : 'day';
+      final key = '${booking['id']}:${booking['scheduled_at']}:$type';
+      if (rows('booking_reminders').any((r) => r['key'] == key)) continue;
+      rows('booking_reminders').add({
+        'id': nextId('booking_reminders'),
+        'key': key,
+      });
+      final message = type == 'day'
+          ? 'Your demo booking #${booking['id']} is coming up within 24 hours.'
+          : 'Your demo booking #${booking['id']} starts in about an hour.';
+      notify(booking['customer'], message);
+      notify(byId('professionals', booking['professional'])['user'], message);
+    }
+  }
   bool participant(Json row) =>
       row['customer'] == userId ||
       byId('professionals', row['professional'])['user'] == userId;
@@ -346,6 +376,22 @@ class DemoStore {
       result['review'] = rows('reviews')
           .where((r) => r['booking'] == row['id'])
           .firstOrNull;
+      final change = rows('reschedules')
+          .where((r) => r['booking'] == row['id'] && r['status'] == 'pending')
+          .lastOrNull;
+      result['schedule_enabled'] =
+          byId('professionals', row['professional'])['schedule_enabled'] ==
+          true;
+      result['reschedule_request'] = change == null
+          ? null
+          : {
+              'id': change['id'],
+              'requested_by': change['requested_by'] == row['customer']
+                  ? 'customer'
+                  : 'professional',
+              'scheduled_at': change['scheduled_at'],
+              'slot': change['slot'],
+            };
     }
     return result;
   }
@@ -366,9 +412,10 @@ class DemoStore {
     };
   }
 
-  bool conflicts(int professional, DateTime start, DateTime end) =>
+  bool conflicts(int professional, DateTime start, DateTime end, {int? exclude}) =>
       rows('bookings').any((b) {
         if (b['professional'] != professional ||
+            b['id'] == exclude ||
             !['pending', 'accepted'].contains(b['status'])) {
           return false;
         }
@@ -456,6 +503,7 @@ class DemoStore {
   dynamic _handle(String method, String path, Json body, Json query) {
     final parts = path.split('/').where((p) => p.isNotEmpty).toList();
     final kind = parts.first;
+    deliverDemoReminders();
     if (kind == 'demo' && parts.last == 'notification') {
       account();
       notify(userId!, 'This is a local demo notification. No push was sent.');
@@ -877,6 +925,12 @@ class DemoStore {
           throw ApiException('This status change is not allowed.');
         }
         row['status'] = body['status'];
+        for (final change in rows('reschedules').where(
+          (r) => r['booking'] == row['id'] && r['status'] == 'pending',
+        )) {
+          change['status'] = 'cancelled';
+          change['responded_at'] = now();
+        }
         notify(
           isPro
               ? row['customer']
@@ -884,6 +938,122 @@ class DemoStore {
           'Demo booking #${row['id']} is ${row['status']}.',
         );
         return presentedRequest(kind, row);
+      }
+      if (parts[2] == 'reschedule') {
+        final changes = rows('reschedules').where(
+          (r) => r['booking'] == row['id'] && r['status'] == 'pending',
+        );
+        if (parts.length == 3 && method == 'POST') {
+          if (row['status'] != 'accepted' ||
+              !DateTime.parse(row['scheduled_at']).isAfter(DateTime.now())) {
+            throw ApiException(
+              'Only an upcoming accepted booking can be rescheduled.',
+            );
+          }
+          if (changes.isNotEmpty) {
+            throw ApiException(
+              'This booking already has a pending time suggestion.',
+            );
+          }
+          final start = DateTime.tryParse('${body['scheduled_at']}');
+          if (start == null || !start.isAfter(DateTime.now())) {
+            throw ApiException('Choose a future appointment time.');
+          }
+          final end = start.add(Duration(minutes: row['duration_minutes']));
+          if (conflicts(row['professional'], start, end, exclude: row['id'])) {
+            throw ApiException(
+              'This time is reserved. Choose another appointment.',
+            );
+          }
+          if (start.toUtc().toIso8601String() == row['scheduled_at']) {
+            throw ApiException('Choose a different appointment time.');
+          }
+          final change = {
+            'id': nextId('reschedules'),
+            'booking': row['id'],
+            'requested_by': userId,
+            'scheduled_at': start.toUtc().toIso8601String(),
+            'slot': body['slot'],
+            'status': 'pending',
+            'created_at': now(),
+          };
+          rows('reschedules').add(change);
+          notify(
+            isPro
+                ? row['customer']
+                : byId('professionals', row['professional'])['user'],
+            'A new time was suggested for demo booking #${row['id']}.',
+          );
+          return {
+            'id': change['id'],
+            'requested_by': isPro ? 'professional' : 'customer',
+            'scheduled_at': change['scheduled_at'],
+            'slot': change['slot'],
+          };
+        }
+        if (parts.length == 3 && method == 'DELETE') {
+          final change = changes.lastOrNull;
+          if (change == null || change['requested_by'] != userId) {
+            throw ApiException(
+              'You do not have a pending time suggestion to cancel.',
+            );
+          }
+          change['status'] = 'cancelled';
+          change['responded_at'] = now();
+          return null;
+        }
+        if (parts.length == 4 && parts[3] == 'respond' && method == 'POST') {
+          final change = rows('reschedules').firstWhere(
+            (r) =>
+                r['id'] == body['request_id'] &&
+                r['booking'] == row['id'] &&
+                r['status'] == 'pending',
+            orElse: () => throw ApiException(
+              'This time suggestion is no longer available.',
+            ),
+          );
+          if (change['requested_by'] == userId) {
+            throw ApiException(
+              'The person who suggested the time cannot respond to it.',
+            );
+          }
+          if (!['accept', 'decline'].contains(body['action'])) {
+            throw ApiException('Choose accept or decline.');
+          }
+          if (row['status'] != 'accepted' ||
+              !DateTime.parse(row['scheduled_at']).isAfter(DateTime.now())) {
+            throw ApiException('This booking can no longer be rescheduled.');
+          }
+          if (body['action'] == 'accept') {
+            final start = DateTime.parse(change['scheduled_at']);
+            final end = start.add(Duration(minutes: row['duration_minutes']));
+            if (conflicts(
+              row['professional'],
+              start,
+              end,
+              exclude: row['id'],
+            )) {
+              throw ApiException(
+                'This time is reserved now. Ask for another appointment.',
+              );
+            }
+            row['scheduled_at'] = change['scheduled_at'];
+            row['slot'] = change['slot'];
+            final message =
+                'The new time for demo booking #${row['id']} was accepted.';
+            notify(change['requested_by'], message);
+            notify(userId!, 'Demo booking #${row['id']} has a new time.');
+            change['status'] = 'accepted';
+          } else {
+            notify(
+              change['requested_by'],
+              'The new time for demo booking #${row['id']} was declined.',
+            );
+            change['status'] = 'declined';
+          }
+          change['responded_at'] = now();
+          return presentedRequest('bookings', row);
+        }
       }
       if (parts[2] == 'reply') {
         if (!isPro) {

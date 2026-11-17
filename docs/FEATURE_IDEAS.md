@@ -8,9 +8,7 @@ features.
 
 ### 1. Booking reminders and rescheduling
 
-Send customers and professionals a reminder before an appointment. If plans
-change, let one person ask to move the booking to another available time and
-let the other person accept or decline.
+2
 
 **Why it helps:** People are less likely to miss appointments, and they have a
 clear way to handle a change of plans.
@@ -58,21 +56,21 @@ the service itself or issue service refunds.
 
 ## Recommended order
 
-1. Finish **durable portfolio photo storage** so uploaded photos remain
+1. **Booking reminders and rescheduling** is implemented. Both participants
+   get in-app reminders before accepted appointments. Either participant can
+   suggest a new time, and the other person can accept or decline it.
+2. Finish **durable portfolio photo storage** so uploaded photos remain
    available after a server restart or update. See the
    [photo storage plan](DURABLE_PORTFOLIO_STORAGE_PLAN.md).
-2. Add **booking reminders and rescheduling**, starting with reminders and a
-   simple request-and-response flow for changing appointment times.
 3. Improve message updates and travel distance after the booking flow is
    reliable.
 4. Add more service areas and professional business reports as the number of
    users grows.
 5. Plan problem reports and refunds as a separate, larger project.
 
-## First feature to build
+## What the first feature includes
 
-Start with **booking reminders and rescheduling** after photo storage is
-complete. A first version can:
+The booking reminder and rescheduling feature includes:
 
 1. Remind both people about an upcoming booking.
 2. Let a customer or professional suggest a new time.
