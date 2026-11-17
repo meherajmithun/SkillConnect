@@ -8,7 +8,9 @@ features.
 
 ### 1. Booking reminders and rescheduling
 
-2
+Send customers and professionals reminders before accepted appointments. Either
+person can suggest a new time, and the other person can accept or decline the
+suggestion.
 
 **Why it helps:** People are less likely to miss appointments, and they have a
 clear way to handle a change of plans.
