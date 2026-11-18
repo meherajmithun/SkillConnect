@@ -75,6 +75,7 @@ export function publicUser(user) {
       "phone",
       "role",
       "is_staff",
+      "admin_role",
       "email_verified",
     ].map((key) => [
       key,

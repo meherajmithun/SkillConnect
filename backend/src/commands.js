@@ -19,45 +19,110 @@ try {
       "Demo accounts and catalogue seeded. Existing accounts were preserved.",
     );
   } else if (command === "admin") {
-    const username = text(
-      process.env.ADMIN_USERNAME || "admin",
-      "admin username",
-      150,
-    );
-    const address = email(process.env.ADMIN_EMAIL),
-      password = validatePassword(process.env.ADMIN_PASSWORD, {
-        username,
-        email: address,
+    const validRoles = ["super_admin", "admin", "finance", "content"];
+    const seedAll =
+      process.env.ADMIN_ALL === "true" || process.argv.includes("--all");
+
+    if (seedAll) {
+      const password = validatePassword(
+        process.env.ADMIN_PASSWORD || "AdminPass123!",
+        { username: "super_admin", email: "admin@example.com" },
+      );
+      const hash = await hashPassword(password);
+      await db.transaction(async (tx) => {
+        for (const role of validRoles) {
+          const username = role;
+          const emailAddr = `${role.replace("_", "")}@skillconnect.local`;
+          const existing = await tx.one(
+            "SELECT * FROM users WHERE username=?",
+            [username],
+          );
+          if (existing) {
+            await tx.update("users", existing.id, {
+              email: emailAddr,
+              password: hash,
+              is_staff: 1,
+              admin_role: role,
+              is_active: 1,
+              session_version: existing.session_version + 1,
+            });
+            await tx.query(
+              "UPDATE refresh_sessions SET revoked=1 WHERE user_id=?",
+              [existing.id],
+            );
+          } else {
+            await tx.insert("users", {
+              username,
+              email: emailAddr,
+              password: hash,
+              role: "customer",
+              is_staff: 1,
+              admin_role: role,
+              is_active: 1,
+              created_at: timestamp(),
+            });
+          }
+          console.log(
+            `Configured ${role} account (${username} / ${emailAddr})`,
+          );
+        }
       });
-    const hash = await hashPassword(password);
-    await db.transaction(async (tx) => {
-      const existing = await tx.one("SELECT * FROM users WHERE username=?", [
-        username,
-      ]);
-      if (existing) {
-        await tx.update("users", existing.id, {
-          email: address,
-          password: hash,
-          is_staff: 1,
-          is_active: 1,
-          session_version: existing.session_version + 1,
-        });
-        await tx.query(
-          "UPDATE refresh_sessions SET revoked=1 WHERE user_id=?",
-          [existing.id],
-        );
-      } else
-        await tx.insert("users", {
+      console.log(
+        "All four hardcoded administrator accounts ready. Sign in at /admin/.",
+      );
+    } else {
+      const username = text(
+        process.env.ADMIN_USERNAME || "admin",
+        "admin username",
+        150,
+      );
+      const address = email(
+          process.env.ADMIN_EMAIL || `${username}@example.com`,
+        ),
+        password = validatePassword(process.env.ADMIN_PASSWORD, {
           username,
           email: address,
-          password: hash,
-          role: "customer",
-          is_staff: 1,
-          is_active: 1,
-          created_at: timestamp(),
         });
-    });
-    console.log("Administrator account is ready. Sign in at /admin/.");
+
+      const rawRole = process.env.ADMIN_ROLE || "super_admin";
+      if (!validRoles.includes(rawRole))
+        throw new Error(`ADMIN_ROLE must be one of: ${validRoles.join(", ")}`);
+      const adminRole = rawRole;
+
+      const hash = await hashPassword(password);
+      await db.transaction(async (tx) => {
+        const existing = await tx.one("SELECT * FROM users WHERE username=?", [
+          username,
+        ]);
+        if (existing) {
+          await tx.update("users", existing.id, {
+            email: address,
+            password: hash,
+            is_staff: 1,
+            admin_role: adminRole,
+            is_active: 1,
+            session_version: existing.session_version + 1,
+          });
+          await tx.query(
+            "UPDATE refresh_sessions SET revoked=1 WHERE user_id=?",
+            [existing.id],
+          );
+        } else
+          await tx.insert("users", {
+            username,
+            email: address,
+            password: hash,
+            role: "customer",
+            is_staff: 1,
+            admin_role: adminRole,
+            is_active: 1,
+            created_at: timestamp(),
+          });
+      });
+      console.log(
+        `Administrator account ready (role: ${adminRole}). Sign in at /admin/.`,
+      );
+    }
   } else if (command === "import-legacy") {
     const filename = process.argv[3] || path.join(backendRoot, "db.sqlite3");
     const counts = await importLegacy(db, filename);

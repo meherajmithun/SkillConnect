@@ -24,10 +24,19 @@ class Api extends ChangeNotifier {
     defaultValue: true,
   );
   late final PushService push = PushService(this);
-  static const baseUrl = String.fromEnvironment(
-    'API_URL',
-    defaultValue: 'http://localhost:8000/api/',
-  );
+  static String _defaultBaseUrl() {
+    const configured = String.fromEnvironment('API_URL');
+    if (configured.isNotEmpty) {
+      return configured.endsWith('/') ? configured : '$configured/';
+    }
+    if (kIsWeb &&
+        !const {'localhost', '127.0.0.1', '::1'}.contains(Uri.base.host)) {
+      return Uri.base.resolve('/api/').toString();
+    }
+    return 'http://localhost:8000/api/';
+  }
+
+  static final String baseUrl = _defaultBaseUrl();
   final http.Client client;
   String serverUrl = baseUrl;
   final FlutterSecureStorage storage;

@@ -8,7 +8,6 @@ import 'screens/discover.dart';
 import 'screens/activity.dart';
 import 'screens/account.dart';
 import 'screens/professional.dart';
-import 'screens/server.dart';
 
 final skillConnectNavigator = GlobalKey<NavigatorState>();
 
@@ -202,17 +201,6 @@ class _HomeShellState extends State<HomeShell> {
               PopupMenuItem(value: 'light', child: Text('Light mode')),
               PopupMenuItem(value: 'dark', child: Text('Dark mode')),
             ],
-          ),
-          IconButton(
-            tooltip: 'Server connection',
-            icon: const Icon(Icons.link_rounded),
-            onPressed: () =>
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => ServerScreen(api: api)),
-                ).then((_) {
-                  if (mounted) setState(() => selected = 0);
-                }),
           ),
           if (api.signedIn)
             IconButton(

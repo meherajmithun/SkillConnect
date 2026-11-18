@@ -124,10 +124,49 @@ export function authentication(db, config) {
     );
     next();
   };
+  // Hardcoded role hierarchy:
+  //   super_admin — full control
+  //   admin       — user/professional management, approvals, moderation
+  //   finance     — promotions, payouts, pricing, refunds
+  //   content     — reviews, reports, categories, areas, flagged content
+  //
+  // A staff user with no admin_role is treated as super_admin for backward
+  // compatibility with accounts created before RBAC was introduced.
+  const ROLES = ["super_admin", "admin", "finance", "content"];
+
+  /** Effective role: explicit admin_role, or 'super_admin' for legacy is_staff users. */
+  const effectiveRole = (user) =>
+    user?.is_staff ? (user.admin_role ?? "super_admin") : null;
+
+  /**
+   * Middleware factory: rejects unless the user's effective role is one of the
+   * supplied roles, or is super_admin (which always passes).
+   */
+  const requireRole =
+    (...allowed) =>
+    (req, res, next) => {
+      const role = effectiveRole(req.user);
+      if (!role || (!allowed.includes(role) && role !== "super_admin"))
+        reject(
+          allowed.length === 1
+            ? `${allowed[0].replace("_", " ")} access required.`
+            : "Insufficient admin role.",
+          403,
+        );
+      next();
+    };
+
+  // Basic staff gate — any is_staff=1 user passes (regardless of admin_role).
   const staff = (req, res, next) => {
     if (!req.user?.is_staff) reject("Administrator access required.", 403);
     next();
   };
+
+  // Named role guards for specific endpoints.
+  const superAdmin = requireRole("super_admin");
+  const adminOrAbove = requireRole("admin", "super_admin");
+  const financeOrAbove = requireRole("finance", "super_admin");
+  const contentOrAbove = requireRole("content", "super_admin");
   const sendEmail =
     config.sendEmail ||
     (async ({ to, code, purpose }) => {
@@ -407,5 +446,15 @@ export function authentication(db, config) {
       },
     );
   }
-  return { authenticate, staff, routes };
+  return {
+    authenticate,
+    staff, // any admin role — backward compat
+    superAdmin, // super_admin only
+    adminOrAbove, // admin | super_admin
+    financeOrAbove, // finance | super_admin
+    contentOrAbove, // content | super_admin
+    requireRole, // arbitrary role check
+    ROLES,
+    routes,
+  };
 }

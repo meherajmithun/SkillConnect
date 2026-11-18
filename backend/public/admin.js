@@ -1,5 +1,7 @@
 const $ = (id) => document.getElementById(id);
 let resource = "professionals";
+let currentUser = null;
+
 const resources = [
   "users",
   "professionals",
@@ -12,6 +14,11 @@ const resources = [
   "packages",
   "reports",
 ];
+
+function hasRole(...roles) {
+  const role = currentUser?.admin_role || "super_admin";
+  return role === "super_admin" || roles.includes(role);
+}
 function feedback(error) {
   $("feedback").textContent = error?.message || "";
 }
@@ -82,7 +89,13 @@ async function load() {
     .forEach((b) =>
       b.setAttribute("aria-current", String(b.textContent === resource)),
     );
-  $("add").hidden = !["categories", "areas", "packages"].includes(resource);
+  const canSuper = hasRole("super_admin");
+  const canAdmin = hasRole("admin");
+  const canFinance = hasRole("finance");
+  const canContent = hasRole("content");
+
+  $("add").hidden =
+    !canSuper || !["categories", "areas", "packages"].includes(resource);
   const keys = data.results.length
     ? Object.keys(data.results[0]).filter(
         (k) => !["password", "user_id", "created_at", "updated_at"].includes(k),
@@ -117,13 +130,13 @@ async function load() {
           await refresh();
         }),
       );
-    if (resource === "users")
+    if (resource === "users" && canAdmin)
       toggle("is_active", row.is_active ? "Deactivate" : "Activate");
-    if (resource === "professionals")
+    if (resource === "professionals" && canAdmin)
       toggle("verified", row.verified ? "Unverify" : "Verify");
-    if (resource === "reviews")
+    if (resource === "reviews" && canContent)
       toggle("visible", row.visible ? "Hide" : "Restore");
-    if (resource === "reports")
+    if (resource === "reports" && canContent)
       actions.append(
         button(row.resolved ? "Reopen" : "Resolve", async () => {
           const resolution = prompt("Resolution notes", row.resolution);
@@ -135,7 +148,7 @@ async function load() {
           await refresh();
         }),
       );
-    if (resource === "promotions") {
+    if (resource === "promotions" && canFinance) {
       if (row.status === "pending")
         actions.append(
           button("Confirm received payment", async () => {
@@ -158,7 +171,7 @@ async function load() {
           }),
         );
     }
-    if (["categories", "areas", "packages"].includes(resource))
+    if (["categories", "areas", "packages"].includes(resource) && canSuper)
       actions.append(
         button("Edit", async () => {
           const fields =
@@ -193,6 +206,13 @@ async function refresh() {
 async function enter() {
   const user = await api("me/");
   if (!user.is_staff) throw new Error("This account is not an administrator.");
+  currentUser = user;
+  const role = user.admin_role || "super_admin";
+  const badge = $("user-badge");
+  if (badge) {
+    badge.textContent = `${user.username} (${role.replaceAll("_", " ")})`;
+    badge.hidden = false;
+  }
   $("login").hidden = true;
   $("dashboard").hidden = false;
   $("logout").hidden = false;
@@ -218,6 +238,7 @@ $("logout").addEventListener("click", async () => {
       refresh: sessionStorage.getItem("refresh"),
     });
   } catch {}
+  currentUser = null;
   sessionStorage.clear();
   location.reload();
 });

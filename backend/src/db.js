@@ -79,6 +79,51 @@ export async function openDatabase(config) {
     migrate: async () => {
       if (postgres) await pool.query(schema(true));
       else sqlite.exec(schema(false));
+      // Incremental migrations — safe to run on existing databases.
+      // Migration 3: add admin_role column for hardcoded RBAC.
+      // (Version 2 is reserved by catalogue.js for initial reference data seeding.)
+      const migration3 = async (tx) => {
+        const applied = await tx.one(
+          "SELECT version FROM schema_migrations WHERE version=3",
+        );
+        if (applied) return;
+        try {
+          await tx.query(
+            "ALTER TABLE users ADD COLUMN admin_role TEXT CHECK(admin_role IN ('super_admin','admin','finance','content')) DEFAULT NULL",
+          );
+        } catch {
+          // Column already exists on a fresh schema — ignore.
+        }
+        await tx.query(
+          "INSERT INTO schema_migrations (version, applied_at) VALUES (3, ?) ON CONFLICT(version) DO NOTHING",
+          [new Date().toISOString()],
+        );
+        console.log("Migration 3 applied: admin_role column added to users.");
+      };
+      if (postgres) {
+        const client = await pool.connect();
+        try {
+          await client.query("BEGIN");
+          await migration3(
+            connection((sql, params) => client.query(sql, params), true),
+          );
+          await client.query("COMMIT");
+        } catch (err) {
+          await client.query("ROLLBACK");
+          throw err;
+        } finally {
+          client.release();
+        }
+      } else {
+        sqlite.exec("BEGIN IMMEDIATE");
+        try {
+          await migration3(base);
+          sqlite.exec("COMMIT");
+        } catch (err) {
+          sqlite.exec("ROLLBACK");
+          throw err;
+        }
+      }
     },
     read: (task) => (postgres ? task(base) : enqueue(() => task(base))),
     transaction: (task) => {

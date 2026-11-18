@@ -62,3 +62,40 @@ test("Render defaults do not bypass production safeguards", () => {
     /ALLOWED_HOSTS/,
   );
 });
+
+test("Vercel production uses deployment hosts, HTTPS and writable scratch media", () => {
+  const config = configuration({
+    ...production,
+    VERCEL: "1",
+    VERCEL_URL: "skillconnect-preview-abc.vercel.app",
+    VERCEL_PROJECT_PRODUCTION_URL: "skillconnect.vercel.app",
+    VERCEL_BRANCH_URL: "skillconnect-git-main.vercel.app",
+  });
+  assert.deepEqual(config.hosts, [
+    "skillconnect-preview-abc.vercel.app",
+    "skillconnect.vercel.app",
+    "skillconnect-git-main.vercel.app",
+  ]);
+  assert.equal(
+    config.publicOrigin,
+    "https://skillconnect-preview-abc.vercel.app",
+  );
+  assert.equal(config.trustProxy, 1);
+  assert.equal(config.mediaDir, "/tmp/skillconnect-media");
+  assert.equal(config.vercel, true);
+});
+
+test("explicit host and origin configuration takes precedence on Vercel", () => {
+  const config = configuration({
+    ...production,
+    VERCEL: "1",
+    VERCEL_URL: "skillconnect-preview-abc.vercel.app",
+    ALLOWED_HOSTS: "app.skillconnect.example,skillconnect.vercel.app",
+    PUBLIC_ORIGIN: "https://app.skillconnect.example",
+  });
+  assert.deepEqual(config.hosts, [
+    "app.skillconnect.example",
+    "skillconnect.vercel.app",
+  ]);
+  assert.equal(config.publicOrigin, "https://app.skillconnect.example");
+});

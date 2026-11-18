@@ -167,6 +167,10 @@ the [Render deployment guide](docs/RENDER_DEPLOYMENT.md) for hosting steps and
 free plan limits. Production also needs a strong JWT secret, HTTPS, persistent
 database and media storage, and your own Android signing key.
 
+For a single Vercel project that serves the Flutter web app, Express API, staff
+page, PostgreSQL data, and persistent portfolio images, follow the
+[Vercel deployment guide](docs/VERCEL_DEPLOYMENT.md).
+
 If you are importing an older SQLite database, follow the
 [migration notes](docs/JAVASCRIPT_MIGRATION.md) before seeding. For email,
 push notifications, and payments, configure the corresponding credentials;

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import { mkdir, writeFile, unlink } from "node:fs/promises";
+import { del, put } from "@vercel/blob";
 import multer from "multer";
 import sharp from "sharp";
 import { ownProfile } from "./marketplace.js";
@@ -9,7 +10,14 @@ import { reject, text, find, paginate } from "./validation.js";
 export function uploadRoutes(app, db, config, auth) {
   const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 2, fieldSize: 4000 },
+    limits: {
+      // Vercel Functions accept request bodies up to 4.5 MB. Leave room for
+      // multipart fields and headers while retaining the 5 MB local limit.
+      fileSize: (config.vercel ? 4 : 5) * 1024 * 1024,
+      files: 1,
+      fields: 2,
+      fieldSize: 4000,
+    },
   }).single("image");
   const view = (row, req) => ({
     id: row.id,
@@ -24,13 +32,14 @@ export function uploadRoutes(app, db, config, auth) {
   });
   async function image(file) {
     if (!file) return "";
+    let bytes;
     try {
       const metadata = await sharp(file.buffer, {
         limitInputPixels: 25000000,
       }).metadata();
       if (!["jpeg", "png", "webp"].includes(metadata.format))
         reject("Use a JPEG, PNG or WebP image.");
-      const bytes = await sharp(file.buffer, { limitInputPixels: 25000000 })
+      bytes = await sharp(file.buffer, { limitInputPixels: 25000000 })
         .rotate()
         .resize({
           width: 1600,
@@ -40,7 +49,25 @@ export function uploadRoutes(app, db, config, auth) {
         })
         .jpeg({ quality: 85 })
         .toBuffer();
-      const filename = `portfolio/${randomUUID()}.jpg`;
+    } catch (error) {
+      if (error.status) throw error;
+      reject("Use a valid image smaller than the upload limit.");
+    }
+    const filename = `portfolio/${randomUUID()}.jpg`;
+    if (config.vercel) {
+      try {
+        const blob = await put(filename, bytes, {
+          access: "public",
+          addRandomSuffix: false,
+          contentType: "image/jpeg",
+        });
+        return blob.url;
+      } catch (error) {
+        console.error("Vercel Blob upload failed:", error.message);
+        reject("Image storage is unavailable. Try again later.", 503);
+      }
+    }
+    try {
       await mkdir(path.join(config.mediaDir, "portfolio"), { recursive: true });
       await writeFile(path.join(config.mediaDir, filename), bytes, {
         flag: "wx",
@@ -48,13 +75,21 @@ export function uploadRoutes(app, db, config, auth) {
       return filename;
     } catch (error) {
       if (error.status) throw error;
-      reject("Use a valid image smaller than 5 MB.");
+      reject("Image storage is unavailable. Try again later.", 503);
     }
   }
-  const removeImage = (filename) =>
-    /^portfolio\/[\w/-]+\.(jpg|jpeg|png|webp)$/i.test(filename)
+  const removeImage = (filename) => {
+    if (
+      config.vercel &&
+      /^https:\/\/[\w.-]+\.blob\.vercel-storage\.com\/portfolio\/[\w/-]+\.jpg$/i.test(
+        filename,
+      )
+    )
+      return del(filename).catch(() => {});
+    return /^portfolio\/[\w/-]+\.(jpg|jpeg|png|webp)$/i.test(filename)
       ? unlink(path.join(config.mediaDir, filename)).catch(() => {})
       : Promise.resolve();
+  };
   app.get("/api/portfolio/", auth.authenticate, async (req, res) => {
     const rows = await db.read(async (tx) =>
       tx.all(
@@ -91,8 +126,7 @@ export function uploadRoutes(app, db, config, auth) {
         }),
       );
     } catch (error) {
-      if (values.image)
-        await unlink(path.join(config.mediaDir, values.image)).catch(() => {});
+      if (values.image) await removeImage(values.image);
       throw error;
     }
     res.status(201).json(view(row, req));

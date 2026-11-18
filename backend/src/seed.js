@@ -52,6 +52,40 @@ export async function seedDemo(db, password) {
         role: "customer",
         created_at: timestamp(),
       });
+
+    // Seed the four hardcoded administration roles
+    const adminRoles = [
+      ["super_admin", "superadmin@example.com", "Super", "Admin"],
+      ["admin", "admin@example.com", "System", "Admin"],
+      ["finance", "finance@example.com", "Finance", "Officer"],
+      ["content", "content@example.com", "Content", "Moderator"],
+    ];
+    for (const [username, emailAddr, first_name, last_name] of adminRoles) {
+      const existing = await tx.one("SELECT id FROM users WHERE username=?", [
+        username,
+      ]);
+      if (existing) {
+        await tx.update("users", existing.id, {
+          is_staff: 1,
+          admin_role: username,
+          password: hash,
+        });
+      } else {
+        await tx.insert("users", {
+          username,
+          email: emailAddr,
+          password: hash,
+          first_name,
+          last_name,
+          phone: "+8801700000099",
+          role: "customer",
+          is_staff: 1,
+          admin_role: username,
+          is_active: 1,
+          created_at: timestamp(),
+        });
+      }
+    }
     const pros = [
       [
         "rahim",

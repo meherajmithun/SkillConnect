@@ -19,8 +19,15 @@ header {
   background: #122b45;
   color: white;
 }
-header button {
+#user-badge {
   margin-left: auto;
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 6px 12px;
+  border-radius: 20px;
+}
+header button {
+  margin-left: 0;
 }
 main {
   max-width: 1200px;

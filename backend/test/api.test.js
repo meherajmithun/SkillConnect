@@ -1430,3 +1430,245 @@ test("rate limiting persists failed attempts and host allowlists are enforced", 
   config.hosts = ["allowed.example"];
   assert.equal((await request("GET", "health/")).status, 400);
 });
+test("hardcoded admin roles enforce role-based access control (RBAC)", async () => {
+  const createAdminUser = async (username, admin_role) => {
+    const hash = await hashPassword(password);
+    await db.insert("users", {
+      username,
+      email: `${username}@example.com`,
+      password: hash,
+      role: "customer",
+      is_staff: 1,
+      admin_role,
+      created_at: timestamp(),
+    });
+    return (await login(username)).access;
+  };
+
+  const superToken = await createAdminUser("test_super", "super_admin");
+  const adminToken = await createAdminUser("test_admin", "admin");
+  const financeToken = await createAdminUser("test_finance", "finance");
+  const contentToken = await createAdminUser("test_content", "content");
+
+  // All roles can read
+  assert.equal(
+    (await request("GET", "admin/users/", null, superToken)).status,
+    200,
+  );
+  assert.equal(
+    (await request("GET", "admin/users/", null, adminToken)).status,
+    200,
+  );
+  assert.equal(
+    (await request("GET", "admin/users/", null, financeToken)).status,
+    200,
+  );
+  assert.equal(
+    (await request("GET", "admin/users/", null, contentToken)).status,
+    200,
+  );
+
+  // Users & Professionals: admin & super_admin allowed; finance & content forbidden
+  assert.equal(
+    (
+      await request(
+        "PATCH",
+        `admin/professionals/${world.pro.id}/`,
+        { verified: true },
+        adminToken,
+      )
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await request(
+        "PATCH",
+        `admin/professionals/${world.pro.id}/`,
+        { verified: false },
+        superToken,
+      )
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await request(
+        "PATCH",
+        `admin/professionals/${world.pro.id}/`,
+        { verified: true },
+        financeToken,
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await request(
+        "PATCH",
+        `admin/professionals/${world.pro.id}/`,
+        { verified: true },
+        contentToken,
+      )
+    ).status,
+    403,
+  );
+
+  // Reviews & Reports: content & super_admin allowed; admin & finance forbidden
+  const b = await booking();
+  await request(
+    "POST",
+    `bookings/${b.id}/status/`,
+    { status: "accepted" },
+    world.proToken,
+  );
+  await request(
+    "POST",
+    `bookings/${b.id}/status/`,
+    { status: "completed" },
+    world.proToken,
+  );
+  const rev = await request(
+    "POST",
+    "reviews/",
+    { booking: b.id, rating: 5, comment: "Great work!" },
+    world.customerToken,
+  );
+  assert.equal(
+    (
+      await request(
+        "PATCH",
+        `admin/reviews/${rev.data.id}/`,
+        { visible: false },
+        contentToken,
+      )
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await request(
+        "PATCH",
+        `admin/reviews/${rev.data.id}/`,
+        { visible: true },
+        superToken,
+      )
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await request(
+        "PATCH",
+        `admin/reviews/${rev.data.id}/`,
+        { visible: false },
+        adminToken,
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await request(
+        "PATCH",
+        `admin/reviews/${rev.data.id}/`,
+        { visible: false },
+        financeToken,
+      )
+    ).status,
+    403,
+  );
+
+  // Reference data (categories/areas/packages): super_admin ONLY
+  assert.equal(
+    (
+      await request(
+        "POST",
+        "admin/categories/",
+        { name: "Gardener", icon: "yard" },
+        superToken,
+      )
+    ).status,
+    201,
+  );
+  assert.equal(
+    (
+      await request(
+        "POST",
+        "admin/categories/",
+        { name: "Plumber", icon: "plumbing" },
+        adminToken,
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await request(
+        "POST",
+        "admin/categories/",
+        { name: "Plumber", icon: "plumbing" },
+        financeToken,
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await request(
+        "POST",
+        "admin/categories/",
+        { name: "Plumber", icon: "plumbing" },
+        contentToken,
+      )
+    ).status,
+    403,
+  );
+
+  // Promotions confirm/cancel: finance & super_admin allowed; admin & content forbidden
+  const promo = (
+    await request(
+      "POST",
+      "promotions/",
+      {
+        package: world.package.id,
+        category: world.category.id,
+        area: world.area.id,
+      },
+      world.proToken,
+    )
+  ).data;
+  assert.equal(
+    (
+      await request(
+        "POST",
+        `admin/promotions/${promo.id}/confirm/`,
+        { confirm: true },
+        adminToken,
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await request(
+        "POST",
+        `admin/promotions/${promo.id}/confirm/`,
+        { confirm: true },
+        contentToken,
+      )
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await request(
+        "POST",
+        `admin/promotions/${promo.id}/confirm/`,
+        { confirm: true },
+        financeToken,
+      )
+    ).status,
+    200,
+  );
+});

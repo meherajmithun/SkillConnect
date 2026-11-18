@@ -25,6 +25,7 @@ const resources = [
   "packages",
   "reports",
 ];
+
 function values(resource, body) {
   const result = {};
   if (resource === "users") {
@@ -75,9 +76,31 @@ function values(resource, body) {
   }
   return result;
 }
+
 export function adminRoutes(app, db, config, auth) {
-  const guard = [auth.authenticate, auth.staff];
-  app.get("/api/admin/:resource/", ...guard, async (req, res) => {
+  const {
+    authenticate,
+    staff,
+    adminOrAbove,
+    financeOrAbove,
+    contentOrAbove,
+    superAdmin,
+  } = auth;
+
+  // Hardcoded role-to-endpoint access map:
+  //
+  //  GET  any resource              — any admin role (super_admin/admin/finance/content)
+  //  PATCH users / professionals    — admin | super_admin
+  //  PATCH reviews / reports        — content | super_admin
+  //  PATCH categories / areas / pkg — super_admin only (reference data)
+  //  POST  categories / areas / pkg — super_admin only
+  //  POST  promotions confirm        — finance | super_admin
+  //  POST  promotions cancel         — finance | super_admin
+
+  const anyAdmin = [authenticate, staff];
+
+  // ── READ ──────────────────────────────────────────────────────────────────
+  app.get("/api/admin/:resource/", ...anyAdmin, async (req, res) => {
     const resource = req.params.resource;
     if (!resources.includes(resource)) reject("Not found.", 404);
     const rows = await db.read(async (tx) => {
@@ -97,74 +120,116 @@ export function adminRoutes(app, db, config, auth) {
     });
     res.json({ count: rows.length, results: rows, next: null, previous: null });
   });
-  app.patch("/api/admin/:resource/:id/", ...guard, async (req, res) => {
-    const resource = req.params.resource;
-    if (
-      !resources.includes(resource) ||
-      ["bookings", "quotes", "promotions"].includes(resource)
-    )
-      reject("This resource is read-only.");
-    const data = values(resource, req.body);
-    if (!Object.keys(data).length) reject("Supply an editable field.");
-    const result = await db.transaction(async (tx) => {
-      await find(tx, resource, req.params.id);
-      const row = await tx.update(resource, integer(req.params.id, "ID"), data);
-      if (resource === "users" && data.is_active === 0) {
-        await tx.update("users", row.id, {
-          session_version: row.session_version + 1,
-        });
-        await tx.query(
-          "UPDATE refresh_sessions SET revoked=1 WHERE user_id=?",
-          [row.id],
+
+  // ── UPDATE ────────────────────────────────────────────────────────────────
+  app.patch(
+    "/api/admin/:resource/:id/",
+    authenticate,
+    staff,
+    async (req, res) => {
+      const resource = req.params.resource;
+
+      // Fine-grained role check per resource type.
+      if (["users", "professionals"].includes(resource))
+        adminOrAbove(req, res, () => {});
+      else if (["reviews", "reports"].includes(resource))
+        contentOrAbove(req, res, () => {});
+      else if (["categories", "areas", "packages"].includes(resource))
+        superAdmin(req, res, () => {});
+
+      if (
+        !resources.includes(resource) ||
+        ["bookings", "quotes", "promotions"].includes(resource)
+      )
+        reject("This resource is read-only.");
+
+      const data = values(resource, req.body);
+      if (!Object.keys(data).length) reject("Supply an editable field.");
+
+      const result = await db.transaction(async (tx) => {
+        await find(tx, resource, req.params.id);
+        const row = await tx.update(
+          resource,
+          integer(req.params.id, "ID"),
+          data,
         );
-      }
-      return resource === "users" ? publicUser(row) : row;
-    });
-    res.json(result);
-  });
-  app.post("/api/admin/:resource/", ...guard, async (req, res) => {
-    const resource = req.params.resource;
-    if (!["categories", "areas", "packages"].includes(resource))
-      reject("This resource cannot be created here.");
-    const data = values(resource, req.body);
-    if (
-      !data.name ||
-      (resource === "areas" &&
-        (data.latitude == null || data.longitude == null)) ||
-      (resource === "packages" && (data.days == null || data.price == null))
-    )
-      reject("Complete the required fields.");
-    if (resource === "categories") data.icon ??= "handyman";
-    if (resource === "areas") data.city ??= "Dhaka";
-    res
-      .status(201)
-      .json(await db.transaction((tx) => tx.insert(resource, data)));
-  });
-  app.post("/api/admin/promotions/:id/confirm/", ...guard, async (req, res) => {
-    if (req.body.confirm !== true)
-      reject("Confirm that payment was received and independently verified.");
-    res.json(
-      await db.transaction(async (tx) =>
-        presentedPromotion(
-          tx,
-          await activatePromotion(tx, integer(req.params.id, "promotion ID")),
-        ),
-      ),
-    );
-  });
-  app.post("/api/admin/promotions/:id/cancel/", ...guard, async (req, res) => {
-    res.json(
-      await db.transaction(async (tx) => {
-        await find(tx, "promotions", req.params.id);
-        return presentedPromotion(
-          tx,
-          await tx.update(
-            "promotions",
-            integer(req.params.id, "promotion ID"),
-            { status: "cancelled" },
+        if (resource === "users" && data.is_active === 0) {
+          await tx.update("users", row.id, {
+            session_version: row.session_version + 1,
+          });
+          await tx.query(
+            "UPDATE refresh_sessions SET revoked=1 WHERE user_id=?",
+            [row.id],
+          );
+        }
+        return resource === "users" ? publicUser(row) : row;
+      });
+      res.json(result);
+    },
+  );
+
+  // ── CREATE (reference data only) ──────────────────────────────────────────
+  app.post(
+    "/api/admin/:resource/",
+    authenticate,
+    superAdmin,
+    async (req, res) => {
+      const resource = req.params.resource;
+      if (!["categories", "areas", "packages"].includes(resource))
+        reject("This resource cannot be created here.");
+      const data = values(resource, req.body);
+      if (
+        !data.name ||
+        (resource === "areas" &&
+          (data.latitude == null || data.longitude == null)) ||
+        (resource === "packages" && (data.days == null || data.price == null))
+      )
+        reject("Complete the required fields.");
+      if (resource === "categories") data.icon ??= "handyman";
+      if (resource === "areas") data.city ??= "Dhaka";
+      res
+        .status(201)
+        .json(await db.transaction((tx) => tx.insert(resource, data)));
+    },
+  );
+
+  // ── PROMOTIONS (finance actions) ──────────────────────────────────────────
+  app.post(
+    "/api/admin/promotions/:id/confirm/",
+    authenticate,
+    financeOrAbove,
+    async (req, res) => {
+      if (req.body.confirm !== true)
+        reject("Confirm that payment was received and independently verified.");
+      res.json(
+        await db.transaction(async (tx) =>
+          presentedPromotion(
+            tx,
+            await activatePromotion(tx, integer(req.params.id, "promotion ID")),
           ),
-        );
-      }),
-    );
-  });
+        ),
+      );
+    },
+  );
+
+  app.post(
+    "/api/admin/promotions/:id/cancel/",
+    authenticate,
+    financeOrAbove,
+    async (req, res) => {
+      res.json(
+        await db.transaction(async (tx) => {
+          await find(tx, "promotions", req.params.id);
+          return presentedPromotion(
+            tx,
+            await tx.update(
+              "promotions",
+              integer(req.params.id, "promotion ID"),
+              { status: "cancelled" },
+            ),
+          );
+        }),
+      );
+    },
+  );
 }

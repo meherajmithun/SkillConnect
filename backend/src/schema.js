@@ -8,7 +8,9 @@ export function schema(postgres) {
       id ${id}, username TEXT NOT NULL UNIQUE, email TEXT NOT NULL UNIQUE,
       password TEXT NOT NULL, first_name TEXT NOT NULL DEFAULT '', last_name TEXT NOT NULL DEFAULT '',
       phone TEXT NOT NULL DEFAULT '', role TEXT NOT NULL CHECK(role IN ('customer','professional')),
-      is_staff INTEGER NOT NULL DEFAULT 0, is_active INTEGER NOT NULL DEFAULT 1,
+      is_staff INTEGER NOT NULL DEFAULT 0,
+      admin_role TEXT CHECK(admin_role IN ('super_admin','admin','finance','content')) DEFAULT NULL,
+      is_active INTEGER NOT NULL DEFAULT 1,
       email_verified INTEGER NOT NULL DEFAULT 0, session_version INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL
     );

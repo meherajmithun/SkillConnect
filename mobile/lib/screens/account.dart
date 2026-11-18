@@ -553,10 +553,11 @@ class AccountScreen extends StatelessWidget {
         ),
         if (api.user!['is_staff'] == true) ...[
           const Gap(),
-          const SectionTitle(
+          SectionTitle(
             'Administration',
-            subtitle:
-                'Manage verification, users, pricing, reviews and reports.',
+            subtitle: api.user!['admin_role'] != null
+                ? 'Role: ${(api.user!['admin_role'] as String).replaceAll('_', ' ').toUpperCase()} • Manage verification, users, pricing, reviews and reports.'
+                : 'Manage verification, users, pricing, reviews and reports.',
           ),
           LoadView<Json>(
             load: () async => await api.get('analytics/'),

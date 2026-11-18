@@ -18,14 +18,25 @@ export function configuration(env = process.env) {
     throw new Error("Set JWT_SECRET to at least 32 random characters.");
   if (production && !databaseUrl && !env.POSTGRES_DB)
     throw new Error("Configure PostgreSQL for production.");
-  // Render assigns the public hostname at deploy time; keep an exact allowlist.
+  // Hosted platforms assign the public hostname at deploy time; keep an exact
+  // allowlist while still supporting preview deployments without manual edits.
   const renderHost = env.RENDER === "true" ? env.RENDER_EXTERNAL_HOSTNAME : "";
-  const hosts = list(env.ALLOWED_HOSTS || renderHost);
+  const vercelHost = env.VERCEL === "1" ? env.VERCEL_URL : "";
+  const platformHosts = [
+    renderHost,
+    vercelHost,
+    env.VERCEL_PROJECT_PRODUCTION_URL,
+    env.VERCEL_BRANCH_URL,
+  ]
+    .filter(Boolean)
+    .join(",");
+  const hosts = list(env.ALLOWED_HOSTS || platformHosts);
   if (production && (!hosts.length || hosts.includes("*")))
     throw new Error("Set exact ALLOWED_HOSTS in production.");
   const dataDir = path.resolve(env.DATA_DIR || path.join(backendRoot, "data"));
   return {
     production,
+    vercel: Boolean(vercelHost),
     port: Number(env.PORT || 8000),
     host: env.HOST || "0.0.0.0",
     secret: secret || "local-development-only-change-before-deployment",
@@ -42,15 +53,25 @@ export function configuration(env = process.env) {
     databaseSsl: flag(env.DATABASE_SSL),
     dataDir,
     sqlitePath: env.SQLITE_PATH || path.join(dataDir, "skillconnect.sqlite3"),
-    mediaDir: path.resolve(env.MEDIA_DIR || path.join(backendRoot, "media")),
+    mediaDir: path.resolve(
+      env.MEDIA_DIR ||
+        (vercelHost
+          ? "/tmp/skillconnect-media"
+          : path.join(backendRoot, "media")),
+    ),
     mediaBaseUrl: env.MEDIA_BASE_URL || "",
     hosts,
     corsOrigins: list(
       env.CORS_ALLOWED_ORIGINS || "http://localhost:8080,http://localhost:3000",
     ),
-    trustProxy: env.TRUST_PROXY ? Number(env.TRUST_PROXY) : false,
+    trustProxy: env.TRUST_PROXY
+      ? Number(env.TRUST_PROXY)
+      : renderHost || vercelHost
+        ? 1
+        : false,
     publicOrigin:
-      env.PUBLIC_ORIGIN || (renderHost ? `https://${renderHost}` : ""),
+      env.PUBLIC_ORIGIN ||
+      (renderHost || vercelHost ? `https://${renderHost || vercelHost}` : ""),
     demoPayments: !production && flag(env.DEMO_PAYMENTS),
     emailMode: env.EMAIL_MODE || (production ? "smtp" : "console"),
     email: {
