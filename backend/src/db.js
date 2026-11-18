@@ -87,12 +87,22 @@ export async function openDatabase(config) {
           "SELECT version FROM schema_migrations WHERE version=3",
         );
         if (applied) return;
-        try {
+        if (postgres) {
+          // PostgreSQL leaves a transaction unusable after any statement
+          // error, even when JavaScript catches it. Avoid triggering a
+          // duplicate-column error for databases created from the latest
+          // schema.
           await tx.query(
-            "ALTER TABLE users ADD COLUMN admin_role TEXT CHECK(admin_role IN ('super_admin','admin','finance','content')) DEFAULT NULL",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_role TEXT CHECK(admin_role IN ('super_admin','admin','finance','content')) DEFAULT NULL",
           );
-        } catch {
-          // Column already exists on a fresh schema — ignore.
+        } else {
+          try {
+            await tx.query(
+              "ALTER TABLE users ADD COLUMN admin_role TEXT CHECK(admin_role IN ('super_admin','admin','finance','content')) DEFAULT NULL",
+            );
+          } catch {
+            // Column already exists on a fresh SQLite schema — ignore.
+          }
         }
         await tx.query(
           "INSERT INTO schema_migrations (version, applied_at) VALUES (3, ?) ON CONFLICT(version) DO NOTHING",
