@@ -81,7 +81,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Offline demo'), findsNothing);
     expect(find.text('Explore offline demo'), findsNothing);
-    expect(requests, contains('/api/professionals/'));
+    expect(find.text('Get started'), findsOneWidget);
+    expect(find.text('I need a service'), findsNothing);
+    expect(requests, isEmpty);
     await tester.pumpWidget(
       MaterialApp(
         theme: appTheme(),

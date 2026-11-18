@@ -3,7 +3,7 @@
     "short_name": "SkillConnect",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#F1F5FB",
+    "background_color": "#F4F8FF",
     "theme_color": "#2358D5",
     "description": "Find skills. Connect locally. Grow your business.",
     "orientation": "portrait-primary",

@@ -18,7 +18,14 @@ Future<bool> requireLogin(BuildContext context, Api api) async {
 
 class AuthScreen extends StatefulWidget {
   final Api api;
-  const AuthScreen({super.key, required this.api});
+  final String initialRole;
+  final bool roleLocked;
+  const AuthScreen({
+    super.key,
+    required this.api,
+    this.initialRole = 'customer',
+    this.roleLocked = false,
+  });
   @override
   State<AuthScreen> createState() => _AuthScreenState();
 }
@@ -35,10 +42,11 @@ class _AuthScreenState extends State<AuthScreen> {
   bool hide = true;
   bool savePassword = false;
   List<SavedLogin> saved = [];
-  String role = 'customer';
+  late String role;
   @override
   void initState() {
     super.initState();
+    role = widget.initialRole;
     loadSaved();
   }
 
@@ -46,7 +54,13 @@ class _AuthScreenState extends State<AuthScreen> {
     if (widget.api.demoMode) return;
     try {
       final accounts = await widget.api.savedLogins.load();
-      if (mounted) setState(() => saved = accounts);
+      if (mounted) {
+        setState(
+          () => saved = widget.roleLocked
+              ? accounts.where((account) => account.role == role).toList()
+              : accounts,
+        );
+      }
     } catch (_) {
       // A unavailable password store must not prevent manual sign-in.
     }
@@ -63,7 +77,11 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: Text(register ? 'Join SkillConnect' : 'Welcome back'),
+      title: Text(
+        register
+            ? 'Create ${role == 'professional' ? 'professional' : 'customer'} account'
+            : '${role == 'professional' ? 'Professional' : 'Customer'} sign in',
+      ),
     ),
     body: PageBody(
       width: 480,
@@ -71,17 +89,26 @@ class _AuthScreenState extends State<AuthScreen> {
         const Gap(20),
         Text(
           register
-              ? 'Your next connection\nstarts here.'
-              : 'Good work begins\nwith a connection.',
+              ? role == 'professional'
+                    ? 'Put your skills\nto work.'
+                    : 'Your next connection\nstarts here.'
+              : role == 'professional'
+              ? 'Welcome back\nto your business.'
+              : 'Welcome back.\nLet’s find the right help.',
           style: Theme.of(context).textTheme.headlineMedium,
         ),
         const Gap(12),
         Text(
           register
-              ? 'Find help nearby, or grow your own service business.'
-              : 'Sign in to book a professional or manage your business.',
+              ? role == 'professional'
+                    ? 'Create your service profile and start connecting with local customers.'
+                    : 'Create a customer account to request quotes and book trusted professionals.'
+              : role == 'professional'
+              ? 'Sign in to manage your profile, requests and appointments.'
+              : 'Sign in to manage quotes, bookings and conversations.',
         ),
         const Gap(28),
+        if (widget.roleLocked) ...[_AuthRoleBanner(role: role), const Gap()],
         if (widget.api.demoMode) ...[
           const Text(
             'Offline demo accounts: demo_customer or demo_pro\nPassword: Demo1234!\nUse sample details when creating a local demo account.',
@@ -129,23 +156,25 @@ class _AuthScreenState extends State<AuthScreen> {
             child: Column(
               children: [
                 if (register) ...[
-                  SegmentedButton<String>(
-                    segments: const [
-                      ButtonSegment(
-                        value: 'customer',
-                        label: Text('Find services'),
-                        icon: Icon(Icons.search),
-                      ),
-                      ButtonSegment(
-                        value: 'professional',
-                        label: Text('Offer services'),
-                        icon: Icon(Icons.handyman_outlined),
-                      ),
-                    ],
-                    selected: {role},
-                    onSelectionChanged: (v) => setState(() => role = v.first),
-                  ),
-                  const Gap(),
+                  if (!widget.roleLocked) ...[
+                    SegmentedButton<String>(
+                      segments: const [
+                        ButtonSegment(
+                          value: 'customer',
+                          label: Text('Find services'),
+                          icon: Icon(Icons.search),
+                        ),
+                        ButtonSegment(
+                          value: 'professional',
+                          label: Text('Offer services'),
+                          icon: Icon(Icons.handyman_outlined),
+                        ),
+                      ],
+                      selected: {role},
+                      onSelectionChanged: (v) => setState(() => role = v.first),
+                    ),
+                    const Gap(),
+                  ],
                   TextFormField(
                     controller: name,
                     keyboardType: TextInputType.name,
@@ -281,6 +310,16 @@ class _AuthScreenState extends State<AuthScreen> {
                         register ? email.text.trim() : username.text.trim(),
                         password.text,
                       );
+                      if (widget.roleLocked &&
+                          widget.api.user?['role'] != role) {
+                        final actualRole = widget.api.user?['role'];
+                        await widget.api.logout();
+                        throw ApiException(
+                          actualRole == 'professional'
+                              ? 'This is a professional account. Go back and choose “I offer services”.'
+                              : 'This is a customer account. Go back and choose “I need a service”.',
+                        );
+                      }
                       if (!widget.api.demoMode) {
                         try {
                           final user = widget.api.user!;
@@ -346,6 +385,62 @@ class _AuthScreenState extends State<AuthScreen> {
 
 String? requiredText(String? value) =>
     value == null || value.trim().isEmpty ? 'This field is required.' : null;
+
+class _AuthRoleBanner extends StatelessWidget {
+  final String role;
+  const _AuthRoleBanner({required this.role});
+
+  @override
+  Widget build(BuildContext context) {
+    final professional = role == 'professional';
+    final color = professional ? teal : blue;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .09),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withValues(alpha: .22)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: .14),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              professional
+                  ? Icons.handyman_rounded
+                  : Icons.travel_explore_rounded,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  professional ? 'Professional account' : 'Customer account',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  professional
+                      ? 'Offer services and manage your work.'
+                      : 'Find, book and review local services.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class DemoAccountSwitch extends StatelessWidget {
   final Api api;
@@ -757,17 +852,18 @@ class StatsGrid extends StatelessWidget {
                                   ? (e.value as double).toStringAsFixed(1)
                                   : '${e.value}')
                             : '${e.value}',
-                        style: Theme.of(context).textTheme.headlineMedium!.copyWith(
-                          letterSpacing: -.5,
-                        ),
+                        style: Theme.of(context).textTheme.headlineMedium!
+                            .copyWith(letterSpacing: -.5),
                       ),
                     ),
                     Icon(
                       switch (e.key) {
                         'rating' => Icons.star_rounded,
-                        'total_bookings' || 'bookings' => Icons.event_available_rounded,
+                        'total_bookings' ||
+                        'bookings' => Icons.event_available_rounded,
                         'views' || 'profile_views' => Icons.visibility_outlined,
-                        'quotes' || 'active_quotes' => Icons.chat_bubble_outline_rounded,
+                        'quotes' ||
+                        'active_quotes' => Icons.chat_bubble_outline_rounded,
                         _ => Icons.analytics_outlined,
                       },
                       size: 20,

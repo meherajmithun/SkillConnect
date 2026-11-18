@@ -36,6 +36,16 @@ const profile = <String, dynamic>{
   'promoted': false,
 };
 
+const customerUser = <String, dynamic>{
+  'id': 1,
+  'username': 'nadia',
+  'first_name': 'Nadia',
+  'last_name': 'Rahman',
+  'role': 'customer',
+  'is_staff': false,
+  'email': 'n@example.com',
+};
+
 Api testApi({
   bool error = false,
   bool Function()? unavailable,
@@ -88,13 +98,46 @@ Api testApi({
 
 void main() {
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
+  testWidgets('Signed-out app opens cover and separate role sign-in paths', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final api = testApi()..ready = true;
+    await tester.pumpWidget(SkillConnectApp(api: api));
+    await tester.pumpAndSettle();
+    expect(find.text('The right help,\nright around you.'), findsOneWidget);
+    expect(find.text('Get started'), findsOneWidget);
+    expect(find.text('Discover'), findsNothing);
+    await tester.tap(find.text('Get started'));
+    await tester.pumpAndSettle();
+    expect(find.text('I need a service'), findsOneWidget);
+    expect(find.text('I offer services'), findsOneWidget);
+    await tester.tap(find.text('I need a service'));
+    await tester.pumpAndSettle();
+    expect(find.text('Customer sign in'), findsOneWidget);
+    expect(find.text('Customer account'), findsOneWidget);
+    await tester.ensureVisible(find.text('New here? Create an account'));
+    await tester.tap(find.text('New here? Create an account'));
+    await tester.pumpAndSettle();
+    expect(find.text('Create customer account'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Full name'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Email address'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Phone number'), findsOneWidget);
+    expect(find.text('Find services'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
   for (final width in [360.0, 1000.0]) {
     testWidgets('Discovery and profile render at $width px', (tester) async {
       tester.view.physicalSize = Size(width, 1000);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
-      final api = testApi()..ready = true;
+      final api = testApi()
+        ..ready = true
+        ..user = customerUser;
       await tester.pumpWidget(SkillConnectApp(api: api));
       await tester.pumpAndSettle();
       expect(find.text('SkillConnect'), findsOneWidget);
@@ -119,11 +162,10 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     var unavailable = true;
-    await tester.pumpWidget(
-      SkillConnectApp(
-        api: testApi(unavailable: () => unavailable)..ready = true,
-      ),
-    );
+    final api = testApi(unavailable: () => unavailable)
+      ..ready = true
+      ..user = customerUser;
+    await tester.pumpWidget(SkillConnectApp(api: api));
     await tester.pumpAndSettle();
     expect(find.text('Could not connect'), findsOneWidget);
     expect(find.text('Try again'), findsOneWidget);
@@ -156,21 +198,22 @@ void main() {
   testWidgets('App follows the device dark appearance', (tester) async {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
-    final api = testApi()..ready = true;
+    final api = testApi()
+      ..ready = true
+      ..user = customerUser;
     await tester.pumpWidget(SkillConnectApp(api: api));
     await tester.pumpAndSettle();
     final context = tester.element(find.byType(Scaffold).first);
     expect(Theme.of(context).brightness, Brightness.dark);
-    expect(
-      Theme.of(context).scaffoldBackgroundColor,
-      const Color(0xFF0C1722),
-    );
+    expect(Theme.of(context).scaffoldBackgroundColor, const Color(0xFF0C1722));
     expect(tester.takeException(), isNull);
   });
   testWidgets('Appearance menu switches to dark mode and saves it', (
     tester,
   ) async {
-    final api = testApi()..ready = true;
+    final api = testApi()
+      ..ready = true
+      ..user = customerUser;
     await tester.pumpWidget(SkillConnectApp(api: api));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Appearance'));

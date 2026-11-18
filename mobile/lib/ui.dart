@@ -52,7 +52,7 @@ class BrandIcon extends StatelessWidget {
   Widget build(BuildContext context) => ClipRRect(
     borderRadius: BorderRadius.circular(size * .24),
     child: Image.asset(
-      'assets/icon/skillconnect-icon.png',
+      'assets/icon/skillconnect-icon-v2.png',
       width: size,
       height: size,
       fit: BoxFit.cover,

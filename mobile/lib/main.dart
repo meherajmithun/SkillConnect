@@ -8,6 +8,7 @@ import 'screens/discover.dart';
 import 'screens/activity.dart';
 import 'screens/account.dart';
 import 'screens/professional.dart';
+import 'screens/welcome.dart';
 
 final skillConnectNavigator = GlobalKey<NavigatorState>();
 
@@ -74,12 +75,14 @@ class SkillConnectApp extends StatelessWidget {
               ],
             ),
       home: api.ready
-          ? HomeShell(
-              key: ValueKey(
-                '${api.serverUrl}:${api.demoMode}:${api.demoGeneration}:${api.user?['id']}',
-              ),
-              api: api,
-            )
+          ? !api.signedIn && !api.demoMode
+                ? WelcomeScreen(api: api)
+                : HomeShell(
+                    key: ValueKey(
+                      '${api.serverUrl}:${api.demoMode}:${api.demoGeneration}:${api.user?['id']}',
+                    ),
+                    api: api,
+                  )
           : const Scaffold(body: Center(child: CircularProgressIndicator())),
     ),
   );
@@ -194,10 +197,7 @@ class _HomeShellState extends State<HomeShell> {
             ),
             onSelected: api.setThemeMode,
             itemBuilder: (context) => const [
-              PopupMenuItem(
-                value: 'system',
-                child: Text('Use device setting'),
-              ),
+              PopupMenuItem(value: 'system', child: Text('Use device setting')),
               PopupMenuItem(value: 'light', child: Text('Light mode')),
               PopupMenuItem(value: 'dark', child: Text('Dark mode')),
             ],
