@@ -46,6 +46,15 @@ const customerUser = <String, dynamic>{
   'email': 'n@example.com',
 };
 
+Future<void> enterCustomerApp(WidgetTester tester) async {
+  await tester.ensureVisible(find.text('Get started'));
+  await tester.tap(find.text('Get started'));
+  await tester.pumpAndSettle();
+  await tester.ensureVisible(find.text('I need a service'));
+  await tester.tap(find.text('I need a service'));
+  await tester.pumpAndSettle();
+}
+
 Api testApi({
   bool error = false,
   bool Function()? unavailable,
@@ -129,6 +138,46 @@ void main() {
     expect(find.text('Find services'), findsNothing);
     expect(tester.takeException(), isNull);
   });
+  testWidgets('A saved customer session still opens on the cover', (
+    tester,
+  ) async {
+    final api = testApi()
+      ..ready = true
+      ..user = customerUser;
+    await tester.pumpWidget(SkillConnectApp(api: api));
+    await tester.pumpAndSettle();
+    expect(find.text('Get started'), findsOneWidget);
+    expect(find.text('Discover'), findsNothing);
+    await enterCustomerApp(tester);
+    expect(find.text('Discover'), findsOneWidget);
+  });
+  testWidgets('Customer sign-in from the cover opens discovery', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final api = testApi()..ready = true;
+    await tester.pumpWidget(SkillConnectApp(api: api));
+    await tester.pumpAndSettle();
+    await enterCustomerApp(tester);
+    expect(find.text('Customer sign in'), findsOneWidget);
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Email or username'),
+      'n@example.com',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Password'),
+      'ExamplePassword42!',
+    );
+    await tester.ensureVisible(find.text('Sign in').last);
+    await tester.tap(find.text('Sign in').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Discover'), findsOneWidget);
+    expect(find.text('Get started'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
   for (final width in [360.0, 1000.0]) {
     testWidgets('Discovery and profile render at $width px', (tester) async {
       tester.view.physicalSize = Size(width, 1000);
@@ -140,6 +189,7 @@ void main() {
         ..user = customerUser;
       await tester.pumpWidget(SkillConnectApp(api: api));
       await tester.pumpAndSettle();
+      await enterCustomerApp(tester);
       expect(find.text('SkillConnect'), findsOneWidget);
       expect(find.text('A little help.\nRight around here.'), findsOneWidget);
       await tester.scrollUntilVisible(
@@ -167,6 +217,7 @@ void main() {
       ..user = customerUser;
     await tester.pumpWidget(SkillConnectApp(api: api));
     await tester.pumpAndSettle();
+    await enterCustomerApp(tester);
     expect(find.text('Could not connect'), findsOneWidget);
     expect(find.text('Try again'), findsOneWidget);
     expect(find.text('A little help.\nRight around here.'), findsOneWidget);
@@ -203,6 +254,7 @@ void main() {
       ..user = customerUser;
     await tester.pumpWidget(SkillConnectApp(api: api));
     await tester.pumpAndSettle();
+    await enterCustomerApp(tester);
     final context = tester.element(find.byType(Scaffold).first);
     expect(Theme.of(context).brightness, Brightness.dark);
     expect(Theme.of(context).scaffoldBackgroundColor, const Color(0xFF0C1722));
@@ -216,6 +268,7 @@ void main() {
       ..user = customerUser;
     await tester.pumpWidget(SkillConnectApp(api: api));
     await tester.pumpAndSettle();
+    await enterCustomerApp(tester);
     await tester.tap(find.byTooltip('Appearance'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Dark mode'));

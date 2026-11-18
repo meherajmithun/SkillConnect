@@ -39,6 +39,12 @@ void main() {
             ..user = {'id': 2, 'role': 'professional'};
       await tester.pumpWidget(SkillConnectApp(api: api));
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Get started'));
+      await tester.tap(find.text('Get started'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('I offer services'));
+      await tester.tap(find.text('I offer services'));
+      await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Choose services and areas'));
       expect(find.text('Finish your business setup'), findsOneWidget);
       expect(

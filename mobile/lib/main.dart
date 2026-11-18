@@ -19,24 +19,32 @@ void main() {
   api.initialize();
 }
 
-class SkillConnectApp extends StatelessWidget {
+class SkillConnectApp extends StatefulWidget {
   final Api api;
   const SkillConnectApp({super.key, required this.api});
+
+  @override
+  State<SkillConnectApp> createState() => _SkillConnectAppState();
+}
+
+class _SkillConnectAppState extends State<SkillConnectApp> {
+  bool enteredApp = false;
+
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
-    animation: api,
+    animation: widget.api,
     builder: (context, _) => MaterialApp(
       title: 'SkillConnect',
       navigatorKey: skillConnectNavigator,
       debugShowCheckedModeBanner: false,
       theme: appTheme(),
       darkTheme: appTheme(brightness: Brightness.dark),
-      themeMode: switch (api.themeModePreference) {
+      themeMode: switch (widget.api.themeModePreference) {
         'light' => ThemeMode.light,
         'dark' => ThemeMode.dark,
         _ => ThemeMode.system,
       },
-      builder: (context, child) => !api.demoMode
+      builder: (context, child) => !widget.api.demoMode
           ? child!
           : Column(
               children: [
@@ -74,14 +82,17 @@ class SkillConnectApp extends StatelessWidget {
                 Expanded(child: child!),
               ],
             ),
-      home: api.ready
-          ? !api.signedIn && !api.demoMode
-                ? WelcomeScreen(api: api)
+      home: widget.api.ready
+          ? !widget.api.demoMode && (!enteredApp || !widget.api.signedIn)
+                ? WelcomeScreen(
+                    api: widget.api,
+                    onEnterApp: () => setState(() => enteredApp = true),
+                  )
                 : HomeShell(
                     key: ValueKey(
-                      '${api.serverUrl}:${api.demoMode}:${api.demoGeneration}:${api.user?['id']}',
+                      '${widget.api.serverUrl}:${widget.api.demoMode}:${widget.api.demoGeneration}:${widget.api.user?['id']}',
                     ),
-                    api: api,
+                    api: widget.api,
                   )
           : const Scaffold(body: Center(child: CircularProgressIndicator())),
     ),

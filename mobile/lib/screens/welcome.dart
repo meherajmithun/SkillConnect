@@ -10,7 +10,8 @@ const _aqua = Color(0xFF43D3C6);
 
 class WelcomeScreen extends StatefulWidget {
   final Api api;
-  const WelcomeScreen({super.key, required this.api});
+  final VoidCallback onEnterApp;
+  const WelcomeScreen({super.key, required this.api, required this.onEnterApp});
 
   @override
   State<WelcomeScreen> createState() => _WelcomeScreenState();
@@ -21,13 +22,22 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   void showRoles() => setState(() => choosingRole = true);
 
-  Future<void> openAuth(String role) => Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) =>
-          AuthScreen(api: widget.api, initialRole: role, roleLocked: true),
-    ),
-  );
+  Future<void> openAuth(String role) async {
+    if (widget.api.signedIn && widget.api.user?['role'] == role) {
+      widget.onEnterApp();
+      return;
+    }
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            AuthScreen(api: widget.api, initialRole: role, roleLocked: true),
+      ),
+    );
+    if (mounted && widget.api.signedIn && widget.api.user?['role'] == role) {
+      widget.onEnterApp();
+    }
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
