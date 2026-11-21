@@ -135,6 +135,37 @@ void main() {
     expect(find.text('Invalid email or password.'), findsOneWidget);
   });
 
+  testWidgets('registration rejects weak passwords before making a request', (
+    tester,
+  ) async {
+    var requests = 0;
+    final api = Api(
+      client: MockClient((_) async {
+        requests++;
+        return http.Response('{}', 500);
+      }),
+    );
+    await openAuth(tester, api);
+    await tester.ensureVisible(find.text('New here? Create an account'));
+    await tester.tap(find.text('New here? Create an account'));
+    await tester.pumpAndSettle();
+    await tester.enterText(field('Full name'), 'Testing User');
+    await tester.enterText(field('Email address'), 'test@example.com');
+    await tester.enterText(field('Phone number'), '01867546494');
+    await tester.enterText(field('Username'), 'testing');
+    await tester.enterText(field('Password'), '12345678');
+    await tester.enterText(field('Confirm password'), '12345678');
+    await tester.ensureVisible(find.text('Create account'));
+    await tester.tap(find.text('Create account'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Use a password with letters and symbols, not only numbers.'),
+      findsOneWidget,
+    );
+    expect(requests, 0);
+  });
+
   testWidgets(
     'manual sign-in leaves password storage empty without opting in',
     (tester) async {

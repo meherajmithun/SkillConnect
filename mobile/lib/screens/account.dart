@@ -66,6 +66,26 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
+  String? passwordError(String? value) {
+    if (value == null || value.isEmpty) return 'Enter your password.';
+    if (!register) return null;
+    if (value.length < 8) return 'Use at least 8 characters.';
+    if (value.length > 128) return 'Use 128 characters or fewer.';
+    if (RegExp(r'^\d+$').hasMatch(value)) {
+      return 'Use a password with letters and symbols, not only numbers.';
+    }
+    final accountDetails = [
+      username.text.trim(),
+      email.text.trim().split('@').first,
+    ].where((part) => part.length >= 4);
+    if (accountDetails.any(
+      (part) => value.toLowerCase().contains(part.toLowerCase()),
+    )) {
+      return 'Choose a password that does not contain your account details.';
+    }
+    return null;
+  }
+
   @override
   void dispose() {
     for (final c in [username, password, confirmPassword, email, name, phone]) {
@@ -254,11 +274,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       ),
                     ),
                   ),
-                  validator: (v) => v == null || v.isEmpty
-                      ? 'Enter your password.'
-                      : register && v.length < 8
-                      ? 'Use at least 8 characters.'
-                      : null,
+                  validator: passwordError,
                 ),
                 if (register) ...[
                   const Gap(),

@@ -29,6 +29,9 @@ class Api extends ChangeNotifier {
     if (configured.isNotEmpty) {
       return configured.endsWith('/') ? configured : '$configured/';
     }
+    if (kReleaseMode) {
+      return 'https://skillconnect-api-6bwr.onrender.com/api/';
+    }
     if (kIsWeb &&
         !const {'localhost', '127.0.0.1', '::1'}.contains(Uri.base.host)) {
       return Uri.base.resolve('/api/').toString();
